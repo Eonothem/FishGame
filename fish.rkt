@@ -725,6 +725,11 @@
 (define ENEMY-SMALL-CHANCE 60)
 (define ENEMY-MED-CHANCE 30)
 (define ENEMY-LARGE-CHANCE 10)
+(check-expect (+ ENEMY-SMALL-CHANCE
+                 ENEMY-MED-CHANCE
+                 ENEMY-LARGE-CHANCE)
+              100)
+
 ;; create-random-enemy: NatNum -> Enemy
 ;; Consumes:
 ;;  - NatNum n: the seed for the Enemy
@@ -740,9 +745,7 @@
             (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
                   [(< rand (+ ENEMY-SMALL-CHANCE
                               ENEMY-MED-CHANCE)) ENEMY-MED]
-                  [(< rand (+ ENEMY-SMALL-CHANCE
-                              ENEMY-MED-CHANCE
-                              ENEMY-LARGE-CHANCE)) ENEMY-MED]))]
+                  [else ENEMY-MED]))]
     (make-enemy (random-pair SCREEN-MIN-X
                              SCREEN-MAX-X
                              SCREEN-MIN-Y
@@ -763,9 +766,7 @@
             (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
                   [(< rand (+ ENEMY-SMALL-CHANCE
                               ENEMY-MED-CHANCE)) ENEMY-MED]
-                  [(< rand (+ ENEMY-SMALL-CHANCE
-                              ENEMY-MED-CHANCE
-                              ENEMY-LARGE-CHANCE)) ENEMY-MED]))]
+                  [else ENEMY-MED]))]
     (make-enemy (random-pair SCREEN-MIN-X
                              SCREEN-MAX-X
                              SCREEN-MIN-Y
@@ -1019,36 +1020,60 @@
                            (make-velvect 0 0)))
 (define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
  
-;; moves-enemies: [ListOf Enemies] PosNum -> [ListOf Enemies]
-;; map:         (Enemy -> Enemy) [ListOf Enemy] -> [ListOf Enemies]
-;; Consues:
-;;  - [ListOf Enemies] aloe: the given List of Enemies
-;;  - PosNum tick: the inputted tick
-;; Produces a new List of Enemies with adjusted positions
-(check-expect (moves-enemies '()) '())
-(check-expect (moves-enemies LOE1)
-              (list
-               (make-enemy (make-posn 28 29)
-                           (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR)
-                           ENEMY-LARGE
-                           (make-velvect 3 4))
-               (make-enemy (make-posn 5 4)
-                           (draw-fish ENEMY-SMALL
-                                      ENEMY-COLOR)
-                            ENEMY-SMALL
-                           (make-velvect 2 2))
-              ENEMY3))
+;; Probability (in percent) that a given Enemy's velevt will be
+;;  randomized in a given tick:
+(define ENEMY-CHANGE-CHANCE 5)
+;; tick-enemy: Enemy] -> Enemy
+;; Consumes:
+;;  - Enemy e: the Enemy to be updated for the next tick
+;; Produces a new Enemy with an adjusted position and a
+;;  vel with a chance, ENEMY-CHANGE-CHANCE, of being randomized
+;;  so thatits components are equally likely to be any Int
+;;  within [-SPEED-MAX, SPEED-MAX]
 
-(define (moves-enemies aloe)
-  (local [(define (enemy-posn-changer enemy)
-            (make-enemy (wrap-posn-to-screen
-                         (make-posn (+ (posn-x (enemy-loc enemy)) (velvect-vx (enemy-vel enemy)))
-                                    (+ (posn-y (enemy-loc enemy)) (velvect-vy (enemy-vel enemy)))))
-                        (enemy-pic enemy)
-                        (enemy-size enemy)
-                        (enemy-vel enemy)))]
-    (map enemy-posn-changer aloe)))
+(check-random (tick-enemy ENEMY1)
+              (make-enemy (make-posn 28 29)
+                          (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR)
+                          ENEMY-LARGE
+                          (if (< (random 100) ENEMY-CHANGE-CHANCE)
+                              (random-pair (* -1 SPEED-MAX)
+                                           SPEED-MAX
+                                           (* -1 SPEED-MAX)
+                                           SPEED-MAX
+                                           make-velvect)
+                              (enemy-vel ENEMY1))))
+(check-random (tick-enemy ENEMY2)
+              (make-enemy (make-posn 5 4)
+                          (draw-fish ENEMY-SMALL
+                                     ENEMY-COLOR)
+                          ENEMY-SMALL
+                          (if (< (random 100) ENEMY-CHANGE-CHANCE)
+                              (random-pair (* -1 SPEED-MAX)
+                                           SPEED-MAX
+                                           (* -1 SPEED-MAX)
+                                           SPEED-MAX
+                                           make-velvect)
+                              (enemy-vel ENEMY2))))
+
+(define (tick-enemy e)
+  (local [(define (posn-changer loc vel)
+                         (wrap-posn-to-screen
+                          (make-posn (+ (posn-x loc) (velvect-vx vel))
+                                     (+ (posn-y loc) (velvect-vy vel)))))
+          (define (vel-changer vel)
+            (if (< (random 100) ENEMY-CHANGE-CHANCE)
+                (random-pair (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             make-velvect)
+                vel))]
+    (make-enemy (posn-changer (enemy-loc e)
+                              (enemy-vel e))
+                (enemy-pic e)
+                (enemy-size e)
+                (vel-changer (enemy-vel e)))))
 
 ;; tick-handler: FishWorld PosNum -> FishWorld
 ;; Consumes:
@@ -1065,7 +1090,8 @@
 
 (define (tick-handler fw)
   (make-fish-world (fish-world-player fw)
-                               (handle-eating (moves-enemies (fish-world-enemies fw)) (fish-world-player fw))))
+                   (handle-eating (map tick-enemy (fish-world-enemies fw))
+                                  (fish-world-player fw))))
 
 ;;handle-eating : [ListOf Enemies] Player -> [ListOf Enemies]
 ;;Filters out the fish that the player collides with
