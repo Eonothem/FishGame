@@ -1077,8 +1077,6 @@
    (define LARGE-POINTS 3)
 
 
-(define SCORE-START 0)
-
 (define SCORING-PLAYER1 (make-player (make-posn 25 25) (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR) PLAYER-SMALL 0))
 
@@ -1113,44 +1111,45 @@
 
 (define SCORING-FW2 (make-fish-world SCORING-PLAYER2 (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)))
 
-;; map-score: PosInt FishWorld -> PosInt
+;; new-score-player: Player Enemy -> Player
 ;; Consumes:
-;;  - PosInt  points: the existing point value
-;;  - FishWorld   fw: the inputted FishWorld
-;; Produces a new point value depending on a possible collision
-
-(check-expect (map-score 1 SCORING-FW1) 1)
-(check-expect (map-score 0 SCORING-FW2) 5)
-
-
-
-(define (map-score points fw)
-  (foldr (lambda (enemy points) (add-points points (fish-world-player fw) enemy)) points (fish-world-enemies fw)))
-
-
-
-
-
-;; add-points: PosInt Player Enemy -> PosInt
-;; Consumes:
-;;  - PosInt  points: the existing point value
 ;;  - Player  player: the existing Player
 ;;  - Enemy    Enemy: an existing Enemy
-;; Produces: a new point value depending on a possible collision
+;; Produces: a Player with a new score depending on a possible collision
+(check-expect (new-score-player SCORING-PLAYER1 SCORING-ENEMY1) SCORING-PLAYER1)
+(check-expect (new-score-player SCORING-PLAYER2 SCORING-ENEMY1)
+              (make-player (player-loc SCORING-PLAYER2)
+                           (player-pic SCORING-PLAYER2)
+                           (player-size SCORING-PLAYER2)
+                           (add-points (player-score SCORING-PLAYER2) SCORING-PLAYER2 SCORING-ENEMY1)))
 
-(check-expect (add-points 5 SCORING-PLAYER1 SCORING-ENEMY1) 5)
-(check-expect (add-points 5 SCORING-PLAYER2 SCORING-ENEMY1) 8)
-(check-expect (add-points 3 SCORING-PLAYER2 SCORING-ENEMY2) 5)
-(check-expect (add-points 3 SCORING-PLAYER2 SCORING-ENEMY3) 4)
+(define (new-score-player player enemy)
+  (make-player
+   (player-loc player)
+   (player-pic player)
+   (player-size player)
+    (add-points (player-score player) player enemy)))
+   
+;; add-points: PosInt Player Enemy -> PosInt
+;; Consumes:
+;;  - PosInt   score: the existing score
+;;  - Player  player: the existing Player
+;;  - Enemy    Enemy: an existing Enemy
+;; Produces: a new score value depending on a possible collision
+
+(check-expect (add-points 0 SCORING-PLAYER1 SCORING-ENEMY1) 0)
+(check-expect (add-points 2 SCORING-PLAYER2 SCORING-ENEMY1) 5)
+(check-expect (add-points 0 SCORING-PLAYER2 SCORING-ENEMY2) 2)
+(check-expect (add-points 0 SCORING-PLAYER2 SCORING-ENEMY3) 1)
 (check-expect (add-points 3 SCORING-PLAYER1 SCORING-ENEMY4) 3)
 
-(define (add-points points player enemy)
-  (if (collide? player enemy) (+ points
+(define (add-points score player enemy)
+  (if (collide? player enemy) (+ score
       (cond
         [(> (enemy-size enemy) (player-size player)) 0]
         [(= (enemy-size enemy) ENEMY-SMALL) SMALL-POINTS]
         [(= (enemy-size enemy) ENEMY-MED) MED-POINTS]
-        [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS])) points))
+        [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS])) score))
 ;;---------Main:----------
 
 ;; main: FishWorld -> FishWorld
