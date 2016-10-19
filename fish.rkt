@@ -282,19 +282,6 @@
   (make-rendering (enemy-pic e)
                         (enemy-loc e)))
 
-;; fish-world->renderings: FishWorld -> ListOfRenderings
-;;  Consumes:
-;;   - FishWorld fw: a FishWorld
-;;  Produces: a LoR containing Renderings representing how
-;;   each Player and Enemy in fw should be rendered
-
-(check-expect (fish-world->lor START)
-              (list (player->rendering (fish-world-player START))))
-
-(define (fish-world->lor fw)
-  (list (player->rendering (fish-world-player fw))))
-   ; Append (loe->lor (fish-world-enemies fw)) to list
-
 ;; render/overlay: Rendering Image -> Image
 ;;  Consumes:
 ;;   - Rendering rend: the Rendering to be displayed
@@ -334,6 +321,14 @@
                     (fish-world-enemies START)))))
 
 (define (render fw)
+  (local [(define (render/overlay/wrap rend comp)
+            (if (out-of-screen? rend)
+                (wrap-to-background (render/overlay rend
+                                                    comp)
+                                    rend
+                                    BACKGROUND)
+                (render/overlay rend
+                                comp)))]
   (foldr (λ (rend comp)
            (wrap-to-background (render/overlay rend
                                                comp)
@@ -342,9 +337,25 @@
          BACKGROUND
          (cons (player->rendering (fish-world-player fw))
                (map enemy->rendering
-                    (fish-world-enemies fw)))))
+                    (fish-world-enemies fw))))))
 
 ;;---------Wrapping----------
+
+;; out-of-screen?: Rendering -> Boolean 
+
+(define (out-of-screen? rend)
+  (or (> (+ (posn-x (rendering-loc rend))
+            (ceiling (/ (image-width (rendering-pic rend)) 2)))
+         SCREEN-MAX-X)
+      (< (- (posn-x (rendering-loc rend))
+            (ceiling (/ (image-width (rendering-pic rend)) 2)))
+         SCREEN-MIN-X)
+      (> (+ (posn-y (rendering-loc rend))
+            (ceiling (/ (image-height (rendering-pic rend)) 2)))
+         SCREEN-MAX-Y)
+      (< (- (posn-y (rendering-loc rend))
+            (ceiling (/ (image-height (rendering-pic rend)) 2)))
+         SCREEN-MIN-Y)))
 
 ;; wrap-to-background: Image Rendering Image -> Image
 ;;  Consumes:
@@ -371,25 +382,25 @@
                  (define comp
                    (render/overlay rend
                                    BACKGROUND))
-                 (define cropped-quad-y
+                 #|(define cropped-quad-y
                    (crop/align "center"
                                "bottom"
                                (image-width BACKGROUND)
                                (- (image-height comp)
                                   (image-height BACKGROUND))
-                               comp))
+                               comp))|#
                  (define uncropped-quad
                    (crop/align "center"
                                "top"
                                (image-width BACKGROUND)
                                (image-height BACKGROUND)
                                comp))]
-                (overlay/align
-                 "right"
-                 "top"
-                 cropped-quad-y
-                 uncropped-quad
-                 BACKGROUND)))
+                 ;(overlay/align
+                 ;"right"
+                 ;"top"
+                 ;cropped-quad-y
+                 uncropped-quad))
+                 ;BACKGROUND)))
 (check-expect (wrap-to-background (render/overlay
                                    (player->rendering PLAYER@CENT-RIGHT)
                                    BACKGROUND)
@@ -401,30 +412,30 @@
                  (define comp
                    (render/overlay rend
                                    BACKGROUND))
-                 (define cropped-quad-x
+                 #|(define cropped-quad-x
                    (crop/align
                     "right"
                     "center"
                     (- (image-width comp)
                        (image-width BACKGROUND))
                     (image-height BACKGROUND)
-                    comp))
+                    comp))|#
                  (define uncropped-quad
                    (crop/align "left"
                                "center"
                                (image-width BACKGROUND)
                                (image-height BACKGROUND)
                                comp))]
-                (overlay/align
-                 "left"
-                 "bottom"
-                 cropped-quad-x
-                 uncropped-quad
-                 BACKGROUND)))
+                 ;(overlay/align
+                 ;"left"
+                 ;"bottom"
+                 ;cropped-quad-x
+                 uncropped-quad))
+                 ;BACKGROUND)))
 
 (define (wrap-to-background comp rend bkgnd)
   (local
-    [(define cropped-quad-xy
+    [#|(define cropped-quad-xy
        (crop/align (posn-x-place (rendering-loc rend))
                    (posn-y-place (rendering-loc rend))
                    (- (image-width comp)
@@ -446,14 +457,14 @@
                    (image-width bkgnd)
                    (- (image-height comp)
                       (image-height bkgnd))
-                   comp))
+                   comp))|#
      (define uncropped-quad
        (crop/align (opposite-place (posn-x-place (rendering-loc rend)))
                    (opposite-place (posn-y-place (rendering-loc rend)))
                    (image-width bkgnd)
                    (image-height bkgnd)
                    comp))]
-    (overlay/align
+    #|(overlay/align
      (opposite-place (posn-x-place (rendering-loc rend)))
      (opposite-place (posn-y-place (rendering-loc rend)))
      cropped-quad-xy
@@ -464,12 +475,12 @@
       (overlay/align
        (posn-x-place (rendering-loc rend))
        (opposite-place (posn-y-place (rendering-loc rend)))
-       cropped-quad-y
+       cropped-quad-y|#
        (overlay/align
         (posn-x-place (rendering-loc rend))
         (posn-y-place (rendering-loc rend))
         uncropped-quad
-        bkgnd))))))
+        bkgnd)));)))
 
 ;; wrap-coordinate: Int Int Int -> Int
 ;;  Consumes:
@@ -758,7 +769,7 @@
 
 ;;Example:
 (define START (make-fish-world PLAYER1
-                               (build-list 1 create-random-enemy)))
+                               (build-list 25 create-random-enemy)))
 
 ;; Template:
 #; (define (fish-world-fn fw)
