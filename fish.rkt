@@ -625,7 +625,7 @@
   (define ENEMY-LARGE 30)
 
 (define-struct velvect [vx vy])
-;; A VelVect is a structure (make-velvect velx vely)
+;; A VelVect is a structure (make-velvect vx vy)
 ;; Interpretation:
 ;; Number vx: the x velocity of the VelVect
 ;; Number vy: the y velocity of the VelVect
