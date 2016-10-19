@@ -875,7 +875,76 @@
   (make-fish-world (player-key-handler (fish-world-player fw)
                                        key)
                                (fish-world-enemies fw)))
-;;----------Main:----------
+
+
+
+(define ENEMY1 (make-enemy ENEMY-LARGE
+                          (make-posn 25 25)
+                          (make-velvect 3 4)
+                          (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR)))
+(define ENEMY2 (make-enemy ENEMY-SMALL
+                          (make-posn 3 2)
+                          (make-velvect 2 2)
+                          (draw-fish ENEMY-SMALL
+                                     ENEMY-COLOR)))
+(define ENEMY3 (make-enemy ENEMY-SMALL
+                          (make-posn 0 10)
+                          (make-velvect 0 0)
+                          (draw-fish ENEMY-SMALL
+                                     ENEMY-COLOR)))
+(define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
+ 
+;; moves-enemies: [ListOf Enemies] PosNum -> [ListOf Enemies]
+;; map:         (Enemy -> Enemy) [ListOf Enemy] -> [ListOf Enemies]
+;; Consues:
+;;  - [ListOf Enemies] aloe: the given List of Enemies
+;;  - PosNum tick: the inputted tick
+;; Produces a new List of Enemies with adjusted positions
+(check-expect (moves-enemies '()) '())
+(check-expect (moves-enemies LOE1)
+              (list
+               (make-enemy ENEMY-LARGE
+                          (make-posn 28 29)
+                          (make-velvect 3 4)
+                          (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR))
+               (make-enemy ENEMY-SMALL
+                          (make-posn 5 4)
+                          (make-velvect 2 2)
+                          (draw-fish ENEMY-SMALL
+                                     ENEMY-COLOR))
+              ENEMY3))
+
+(define (moves-enemies aloe)
+  (local [(define (enemy-posn-changer enemy)
+            (make-enemy (enemy-size enemy)
+                        (make-posn (+ (posn-x (enemy-loc enemy)) (velvect-vx (enemy-vel enemy)))
+                                   (+ (posn-y (enemy-loc enemy)) (velvect-vy (enemy-vel enemy))))
+                        (enemy-vel enemy)
+                        (enemy-pic enemy)))]
+    (map enemy-posn-changer aloe)))
+
+
+;; tick-handler: FishWorld PosNum -> FishWorld
+;; Consumes:
+;;  - FishWorld fw: the curent FishWorld
+;;  - PosNum    tick: the inputed tick
+;; Produces a new FishWorld based on the tick
+
+
+(check-expect (tick-handler START)
+              (make-fish-world (fish-world-player START)
+                               (moves-enemies (list SHARK))))
+
+(define (tick-handler fw)
+  (make-fish-world (fish-world-player fw)
+                               (moves-enemies (fish-world-enemies fw))))
+
+
+;(define-struct fish-world [player enemies])
+
+;;---------Main:----------
 
 ;; main: FishWorld -> FishWorld
 ;;  Consumes:
@@ -885,6 +954,7 @@
 (define (main fw)
   (big-bang fw
             [on-key key-handler]
-            [to-draw render]))
+            [to-draw render]
+            [on-tick tick-handler]))
 
 (main START)
