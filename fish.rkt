@@ -680,7 +680,7 @@
   ...(enemy-size e)...
   ...(enemy-vel e)...)
 
-(define SPEED-MAX 10)
+(define SPEED-MAX 5)
 
 ;; Percentage chances that a randomly generated Enemy 
 ;;  is of a given size:
@@ -964,21 +964,21 @@
 
 
 
-(define ENEMY1 (make-enemy ENEMY-LARGE
-                          (make-posn 25 25)
-                          (make-velvect 3 4)
-                          (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR)))
-(define ENEMY2 (make-enemy ENEMY-SMALL
-                          (make-posn 3 2)
-                          (make-velvect 2 2)
-                          (draw-fish ENEMY-SMALL
-                                     ENEMY-COLOR)))
-(define ENEMY3 (make-enemy ENEMY-SMALL
-                          (make-posn 0 10)
-                          (make-velvect 0 0)
-                          (draw-fish ENEMY-SMALL
-                                     ENEMY-COLOR)))
+(define ENEMY1 (make-enemy (make-posn 25 25)
+                           (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR)
+                           ENEMY-LARGE
+                           (make-velvect 3 4)))
+(define ENEMY2 (make-enemy (make-posn 3 2)
+                           (draw-fish ENEMY-SMALL
+                                     ENEMY-COLOR)
+                           ENEMY-SMALL
+                           (make-velvect 2 2)))
+(define ENEMY3 (make-enemy (make-posn 0 10)
+                           (draw-fish ENEMY-SMALL
+                                      ENEMY-COLOR)
+                           ENEMY-SMALL
+                           (make-velvect 0 0)))
 (define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
  
 ;; moves-enemies: [ListOf Enemies] PosNum -> [ListOf Enemies]
@@ -990,27 +990,27 @@
 (check-expect (moves-enemies '()) '())
 (check-expect (moves-enemies LOE1)
               (list
-               (make-enemy ENEMY-LARGE
-                          (make-posn 28 29)
-                          (make-velvect 3 4)
-                          (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR))
-               (make-enemy ENEMY-SMALL
-                          (make-posn 5 4)
-                          (make-velvect 2 2)
-                          (draw-fish ENEMY-SMALL
-                                     ENEMY-COLOR))
+               (make-enemy (make-posn 28 29)
+                           (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR)
+                           ENEMY-LARGE
+                           (make-velvect 3 4))
+               (make-enemy (make-posn 5 4)
+                           (draw-fish ENEMY-SMALL
+                                      ENEMY-COLOR)
+                            ENEMY-SMALL
+                           (make-velvect 2 2))
               ENEMY3))
 
 (define (moves-enemies aloe)
   (local [(define (enemy-posn-changer enemy)
-            (make-enemy (enemy-size enemy)
-                        (make-posn (+ (posn-x (enemy-loc enemy)) (velvect-vx (enemy-vel enemy)))
-                                   (+ (posn-y (enemy-loc enemy)) (velvect-vy (enemy-vel enemy))))
-                        (enemy-vel enemy)
-                        (enemy-pic enemy)))]
+            (make-enemy (wrap-posn-to-screen
+                         (make-posn (+ (posn-x (enemy-loc enemy)) (velvect-vx (enemy-vel enemy)))
+                                    (+ (posn-y (enemy-loc enemy)) (velvect-vy (enemy-vel enemy)))))
+                        (enemy-pic enemy)
+                        (enemy-size enemy)
+                        (enemy-vel enemy)))]
     (map enemy-posn-changer aloe)))
-
 
 ;; tick-handler: FishWorld PosNum -> FishWorld
 ;; Consumes:
@@ -1021,7 +1021,7 @@
 
 (check-expect (tick-handler START)
               (make-fish-world (fish-world-player START)
-                               (moves-enemies (list SHARK))))
+                               (moves-enemies (fish-world-enemies START))))
 
 (define (tick-handler fw)
   (make-fish-world (fish-world-player fw)
