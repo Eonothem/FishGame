@@ -626,7 +626,7 @@
 
 ;; An EnemySize is a PosInt, one of the following:
   (define ENEMY-SMALL 10)
-  (define ENEMY-Medium 20)
+  (define ENEMY-MED 20)
   (define ENEMY-LARGE 30)
 
 (define-struct velvect [vx vy])
@@ -669,6 +669,68 @@
   ...(enemy-size e)...
   ...(enemy-vel e)...)
 
+(define SPEED-MAX 10)
+
+;; Percentage chances that a randomly generated Enemy 
+;;  is of a given size:
+(define ENEMY-SMALL-CHANCE 60)
+(define ENEMY-MED-CHANCE 30)
+(define ENEMY-LARGE-CHANCE 10)
+;; create-random-enemy: NatNum -> Enemy
+;; Consumes:
+;;  - NatNum n: the seed for the Enemy
+;; Produces: an Enemy located within the bounds of the screen,
+;;           with a velocity whose components are random real numbers
+;;           each in [-SPEED-MAX, SPEED-MAX], with a fixed probability
+;;           of being small, medium, or large in size and holding an
+;;           appropriate Image
+
+(check-random (create-random-enemy 0)
+              (local [(define rand (random 100))
+          (define SIZE
+            (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
+                  [(< rand (+ ENEMY-SMALL-CHANCE
+                              ENEMY-MED-CHANCE)) ENEMY-MED]
+                  [(< rand (+ ENEMY-SMALL-CHANCE
+                              ENEMY-MED-CHANCE
+                              ENEMY-LARGE-CHANCE)) ENEMY-MED]))]
+    (make-enemy (random-pair SCREEN-MIN-X
+                             SCREEN-MAX-X
+                             SCREEN-MIN-Y
+                             SCREEN-MAX-Y
+                             make-posn)
+                (draw-fish SIZE
+                           ENEMY-COLOR)
+                SIZE
+                (random-pair (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             make-velvect))))
+
+(define (create-random-enemy n)
+  (local [(define rand (random 100))
+          (define SIZE
+            (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
+                  [(< rand (+ ENEMY-SMALL-CHANCE
+                              ENEMY-MED-CHANCE)) ENEMY-MED]
+                  [(< rand (+ ENEMY-SMALL-CHANCE
+                              ENEMY-MED-CHANCE
+                              ENEMY-LARGE-CHANCE)) ENEMY-MED]))]
+    (make-enemy (random-pair SCREEN-MIN-X
+                             SCREEN-MAX-X
+                             SCREEN-MIN-Y
+                             SCREEN-MAX-Y
+                             make-posn)
+                (draw-fish SIZE
+                           ENEMY-COLOR)
+                SIZE
+                (random-pair (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             make-velvect))))
+
 ;;----------ListOfEnemies----------
 
 ;; a List-of-Enemies [LOE] is either
@@ -696,7 +758,7 @@
 
 ;;Example:
 (define START (make-fish-world PLAYER1
-                               (list SHARK)))
+                               (build-list 1 create-random-enemy)))
 
 ;; Template:
 #; (define (fish-world-fn fw)
