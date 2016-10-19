@@ -337,18 +337,32 @@
                    (posn-y (rendering-loc rend))
                    bkgnd))
 
+;; render/overlay/crop: Rendering Image -> Image
+;;  Consumes:
+;;   - Rendering rend: the Rendering to be displayed
+;;   - Image    bkgnd: the background to render the player on
+;;  Produces: an Image containing rend's pic rendered on top
+;;            of bkgnd at rend's loc, with any portions outside
+;;            of the screen removed
+
+(define (render/overlay/crop rend bkgnd)
+            (if (out-of-screen? rend)
+                (crop-to-background (render/overlay rend
+                                                    bkgnd)
+                                    rend
+                                    BACKGROUND)
+                (render/overlay rend
+                                bkgnd)))
+
 ;; render: FishWorld -> Image
 ;;  Consumes:
 ;;   - FishWorld fw: the current state of the simulation
 ;;  Produces: An Image containing the Player and all existing
-;;   Enemies at appropriate locations
+;;   Enemies at appropriate locations, along with the current
+;;   score in the upper right corner of the screen
 
 (check-expect (render START)
-              (foldr (λ (rend comp)
-                       (crop-to-background (render/overlay rend
-                                                           comp)
-                                           rend
-                                           BACKGROUND))
+              (foldl render/overlay/crop
                      BACKGROUND
                      (append
                       (list (player-score->rendering (fish-world-player START))
@@ -357,24 +371,12 @@
                            (fish-world-enemies START)))))
 
 (define (render fw)
-  (local [(define (render/overlay/wrap rend comp)
-            (if (out-of-screen? rend)
-                (crop-to-background (render/overlay rend
-                                                    comp)
-                                    rend
-                                    BACKGROUND)
-                (render/overlay rend
-                                comp)))]
-  (foldr (λ (rend comp)
-           (crop-to-background (render/overlay rend
-                                               comp)
-                               rend
-                               BACKGROUND))
+  (foldl render/overlay/crop
          BACKGROUND
          (append (list (player-score->rendering (fish-world-player fw))
                        (player->rendering (fish-world-player fw)))
                  (map enemy->rendering
-                      (fish-world-enemies fw))))))
+                      (fish-world-enemies fw)))))
 
 ;;---------Wrapping----------
 
@@ -1240,6 +1242,79 @@
         [(= (enemy-size enemy) ENEMY-SMALL) SMALL-POINTS]
         [(= (enemy-size enemy) ENEMY-MED) MED-POINTS]
         [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS])) score))
+;;---------Doomstick:----------
+
+;; player-or-all-enemies-eaten?: FishWorld -> Boolean
+;; Consumes:
+;;  - FishWorld fw: the current state of the game
+;; Produces: whether or not either the Player or all of the enemies
+;;           in fw are gone
+(check-expect (player-or-all-enemies-eaten?
+               (make-fish-world 'eaten 
+                                LOE1))
+              #true)
+(check-expect (player-or-all-enemies-eaten?
+               (make-fish-world PLAYER1
+                                '()))
+              #true)
+(check-expect (player-or-all-enemies-eaten? START)
+              #false)
+
+(define (player-or-all-enemies-eaten? fw)
+  (or (eq? (fish-world-player fw) 'eaten) ;Need to update all player-fns if we choose this route...
+      (empty? (fish-world-enemies fw))))
+
+(define LOST-TEXT "Game Over")
+(define WON-TEXT "You win!")
+;; render-doomstick: FishWorld -> Image
+;;  Consumes:
+;;   - FishWorld fw: the final state of the simulation
+;;  Produces: An Image containing the Player or all remaining
+;;   Enemies at appropriate locations, the cuurent score in
+;;   the upper right corner of the screen, and either the
+;;   words "You Win!" or "You Lose!" in the center of the screen
+(check-expect (render-doomstick
+               (make-fish-world 'eaten 
+                                LOE1))
+              (foldl render/overlay/crop
+                     BACKGROUND
+                    (append (list (make-rendering (text LOST-TEXT
+                                                        SCORE-SIZE
+                                                        SCORE-COLOR)
+                                                  (make-posn 0 0)))
+                            (map enemy->rendering
+                                 LOE1))))
+(check-expect (render-doomstick
+               (make-fish-world PLAYER1
+                                '()))
+              (foldl render/overlay/crop
+                  BACKGROUND
+                  (list (player-score->rendering PLAYER1)
+                        (player->rendering PLAYER1)
+                        (make-rendering (text WON-TEXT
+                                              SCORE-SIZE
+                                              SCORE-COLOR)
+                                        (make-posn 0 0)))))
+
+(define (render-doomstick fw)
+    (cond [(eq? (fish-world-player fw) 'eaten)
+           (foldl render/overlay/crop
+                  BACKGROUND
+                  (append (list (make-rendering (text LOST-TEXT
+                                                      SCORE-SIZE
+                                                      SCORE-COLOR)
+                                                (make-posn 0 0)))
+                          (map enemy->rendering
+                               (fish-world-enemies fw))))]
+          [(empty? (fish-world-enemies fw))
+           (foldl render/overlay/crop
+                  BACKGROUND
+                  (list (player-score->rendering (fish-world-player fw))
+                        (player->rendering (fish-world-player fw))
+                        (make-rendering (text WON-TEXT
+                                              SCORE-SIZE
+                                              SCORE-COLOR)
+                                        (make-posn 0 0))))]))
 
 ;;---------Main:----------
 
@@ -1252,6 +1327,8 @@
   (big-bang fw
             [on-key key-handler]
             [to-draw render]
-            [on-tick  tick-handler]))
+            [on-tick  tick-handler]
+            [stop-when player-or-all-enemies-eaten?
+                       render-doomstick]))
 
 (main START)
