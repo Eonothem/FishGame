@@ -644,9 +644,8 @@
  ...(velvect-vx v)...
  ...(velvect-vy v)...)
 
-
 (define-struct enemy [loc pic size vel])
-;; An Enemy is a structure (make-enemy size loc vel pic)
+;; An Enemy is a structure (make-enemy loc pic size vel)
 ;; Interpretation:
 ;; EnemySize size: the size of the Enemy
 ;; Posn       loc: the (x,y) position of the Enemy,
@@ -780,13 +779,22 @@
 (check-expect (collide?
                (make-player (make-posn 61 37) (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR) 16 0)
-               (make-enemy 30 (make-posn 25 25) (make-velvect 3 4)  (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR))) #true)
+               (make-enemy (make-posn 25 25)
+                           (draw-fish ENEMY-LARGE
+                                      ENEMY-COLOR)
+                           30
+                           (make-velvect 3 4)))
+              #true)
 (check-expect (collide?
                (make-player (make-posn 9 0) (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR) 16 0)
-               (make-enemy 30 (make-posn 100 100) (make-velvect 3 4) (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR))) #false)
+               (make-enemy (make-posn 100 100)
+                           (draw-fish ENEMY-LARGE
+                                      ENEMY-COLOR)
+                           30
+                           (make-velvect 3 4)))
+              #false)
+
 ;; move-player: KeyEvent Player-> Posn
 ;; Consumes:
 ;; Player p: the inputed Player
