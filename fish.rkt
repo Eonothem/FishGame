@@ -126,19 +126,23 @@
 (define SCREEN-MIN-Y (/ BACKGROUND-HEIGHT -2))
 (define SCREEN-MAX-Y (/ BACKGROUND-HEIGHT 2))
 
-;; random-posn: Int Int Int Int -> Posn
+;; random-pair: Int Int Int Int (Number Number -> X) -> X
 ;;  Consumes:
 ;;   - Int min-x: the minimum value for the x-coordinate
 ;;   - Int max-x: the maximum value for the x-coordinate
 ;;   - Int min-y: the minimum value for the y-coordinate
 ;;   - Int max-y: the maximum value for the y-coordinate
+;;   - (Number Number -> X) make: a constuctor which consumes
+;;                                two Numbers to instantiate
+;;                                a structure
 ;;  Produces: a Posn with x as an Int within [min-x, max-x]
 ;;   and y as an Int within [min-y, max-y]
 
-(check-random (random-posn SCREEN-MIN-X
-                                SCREEN-MAX-X
-                                SCREEN-MIN-Y
-                                SCREEN-MAX-Y)
+(check-random (random-pair SCREEN-MIN-X
+                           SCREEN-MAX-X
+                           SCREEN-MIN-Y
+                           SCREEN-MAX-Y
+                           make-posn)
               (make-posn (+ (random (- SCREEN-MAX-X
                                        SCREEN-MIN-X))
                             SCREEN-MIN-X)
@@ -146,13 +150,13 @@
                                        SCREEN-MIN-Y))
                             SCREEN-MIN-Y)))
 
-(define (random-posn min-x max-x min-y max-y)
-  (make-posn (+ (random (- max-x
-                           min-x))
-                min-x)
-             (+ (random (- max-y
-                           min-y))
-                min-y)))
+(define (random-pair min-x max-x min-y max-y make)
+  (make (+ (random (- max-x
+                      min-x))
+           min-x)
+        (+ (random (- max-y
+                      min-y))
+           min-y)))
 
 ;----------Rendering----------
 
@@ -556,10 +560,11 @@
 (define PLAYER-COLOR "green")
 
 ;;Examples:
-(define PLAYER1 (make-player (random-posn SCREEN-MIN-X
+(define PLAYER1 (make-player (random-pair SCREEN-MIN-X
                                           SCREEN-MAX-X
                                           SCREEN-MIN-Y
-                                          SCREEN-MAX-Y)
+                                          SCREEN-MAX-Y
+                                          make-posn)
                              (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR)
                              PLAYER-SMALL
