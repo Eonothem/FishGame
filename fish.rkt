@@ -807,7 +807,7 @@
 
 ;;Example:
 (define START (make-fish-world PLAYER1
-                               (build-list 25 create-random-enemy)))
+                               (build-list 15 create-random-enemy)))
 
 ;; Template:
 #; (define (fish-world-fn fw)
@@ -1057,13 +1057,41 @@
 ;; Produces a new FishWorld based on the tick
 
 
-(check-expect (tick-handler START)
-              (make-fish-world (fish-world-player START)
-                               (moves-enemies (fish-world-enemies START))))
+;;(check-expect (tick-handler START)
+   ;           (make-fish-world (fish-world-player START)
+             ;                  (moves-enemies (fish-world-enemies START))))
+
+
 
 (define (tick-handler fw)
   (make-fish-world (fish-world-player fw)
-                               (moves-enemies (fish-world-enemies fw))))
+                               (handle-eating (moves-enemies (fish-world-enemies fw)) (fish-world-player fw))))
+
+;;handle-eating : [ListOf Enemies] Player -> [ListOf Enemies]
+;;Filters out the fish that the player collides with
+;;Doesn't accout for size yet
+;;TODO: Unit Tests, size handling
+(define (handle-eating aloe player)
+  (local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))]
+    (if (empty? COLLIDED-FISH)
+        aloe
+        (filter (lambda (e) (not (member e COLLIDED-FISH))) aloe)
+      )))
+
+;;enemy-equals?
+;;I dont think we need this since i didn't know the member function worked in the case above
+(define (enemy-equals? e1 e2)
+  (and  (= (posn-x (enemy-loc e1)) (posn-x (enemy-loc e2)))
+         (= (posn-y (enemy-loc e1)) (posn-y (enemy-loc e2)))
+         (equal? (enemy-pic e1) (enemy-pic e2))
+         (equal? (enemy-size e1) (enemy-size e2))
+         (= (velvect-vx (enemy-vel e1)) (velvect-vx (enemy-loc e2)))
+         (= (velvect-vy (enemy-vel e1)) (velvect-vy (enemy-loc e2)))))
+
+;;remove-smaller : [ListOf Enemies] Player -> [ListOf Enemies]
+;;Removes all of the fish smaller in aloe than the player
+;;(define (remove-smaller aloe player)
+  
 
 
 ;(define-struct fish-world [player enemies])
