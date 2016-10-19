@@ -254,6 +254,40 @@
          ... (rendering-fn (first lor))
          ... (lor-fn (rest lor))]))
 
+(define SCORE-SIZE 24)
+(define SCORE-COLOR "white")
+;; player-score->rendering: Player -> Rendering
+;; Consumes:
+;;  - Player p: the Player whose score is to be rendered
+;; Produces: a Rendering, representing p's score prefaced by
+;;           "Score: " and placed in the upper-right corner
+
+(check-expect (player-score->rendering PLAYER1)
+              (local [(define score-pic
+                        (text (string-append
+                               "Score: 0")
+                              SCORE-SIZE
+                              SCORE-COLOR))]
+                (make-rendering score-pic
+                                (make-posn
+                                 (+ SCREEN-MIN-X
+                                    (ceiling (/ (image-width score-pic) 2)))
+                                 (- SCREEN-MAX-Y
+                                    (ceiling (/ (image-height score-pic) 2)))))))
+
+(define (player-score->rendering p)
+  (local [(define score-pic
+           (text (string-append
+                  "Score: "
+                  (number->string (player-score p)))
+                 SCORE-SIZE
+                 SCORE-COLOR))]
+    (make-rendering score-pic
+                    (make-posn (+ SCREEN-MIN-X
+                                  (ceiling (/ (image-width score-pic) 2)))
+                               (- SCREEN-MAX-Y
+                                  (ceiling (/ (image-height score-pic) 2)))))))
+
 ;; player->rendering: Player -> Rendering
 ;;  Consumes:
 ;;   - Player p: the Player to be rendered
@@ -316,9 +350,11 @@
                                            rend
                                            BACKGROUND))
                      BACKGROUND
-                     (cons (player->rendering (fish-world-player START))
-                           (map enemy->rendering
-                    (fish-world-enemies START)))))
+                     (append
+                      (list (player-score->rendering (fish-world-player START))
+                            (player->rendering (fish-world-player START)))
+                      (map enemy->rendering
+                           (fish-world-enemies START)))))
 
 (define (render fw)
   (local [(define (render/overlay/wrap rend comp)
@@ -335,9 +371,10 @@
                                rend
                                BACKGROUND))
          BACKGROUND
-         (cons (player->rendering (fish-world-player fw))
-               (map enemy->rendering
-                    (fish-world-enemies fw))))))
+         (append (list (player-score->rendering (fish-world-player fw))
+                       (player->rendering (fish-world-player fw)))
+                 (map enemy->rendering
+                      (fish-world-enemies fw))))))
 
 ;;---------Wrapping----------
 
