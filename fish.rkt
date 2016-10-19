@@ -1013,8 +1013,20 @@
                            (make-velvect 0 0)))
 (define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
 
-(define PLAYER-MED-THRESHOLD 10)
-(define PLAYER-LARGE-THRESHOLD 25)
+;; The proportion of edible Enemies which a Player needs to consume
+;;  in order to advance to the next size:
+(define THRESHOLD-PROPORTION 2/3)
+;; The scores which need to be attained in order for a Player
+;;  to advance to a given size:
+(define PLAYER-MED-THRESHOLD
+  (* (length (filter (λ (e) (= (enemy-size e) ENEMY-SMALL))
+                     (fish-world-enemies START)))
+     THRESHOLD-PROPORTION))
+(define PLAYER-LARGE-THRESHOLD
+  (* (+ PLAYER-MED-THRESHOLD
+        (* 2 (length (filter (λ (e) (= (enemy-size e) ENEMY-MED))
+                             (fish-world-enemies START)))))
+     THRESHOLD-PROPORTION))
 ;; tick-player: Player Int -> Player
 ;; Consumes:
 ;;  - Player p: the Player whose state is to be updated
@@ -1023,12 +1035,12 @@
 ;;           are updated if s has passed a threshold and
 ;;           these fields have yet to be adjusted accordingly
 (check-expect (tick-player PLAYER1 0) PLAYER1)
-(check-expect (tick-player PLAYER1 10)
+(check-expect (tick-player PLAYER1 (ceiling PLAYER-MED-THRESHOLD))
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-MED
                                       PLAYER-COLOR)
                            PLAYER-MED))
-(check-expect (tick-player PLAYER1 25)
+(check-expect (tick-player PLAYER1 (ceiling PLAYER-LARGE-THRESHOLD))
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-LARGE
                                       PLAYER-COLOR)
