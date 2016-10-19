@@ -256,13 +256,13 @@
 
 (define SCORE-SIZE 24)
 (define SCORE-COLOR "white")
-;; player-score->rendering: Player -> Rendering
+;; score->rendering: Int -> Rendering
 ;; Consumes:
-;;  - Player p: the Player whose score is to be rendered
-;; Produces: a Rendering, representing p's score prefaced by
+;;  - Int score: the score to be rendered
+;; Produces: a Rendering, representing score prefaced by
 ;;           "Score: " and placed in the upper-right corner
 
-(check-expect (player-score->rendering PLAYER1)
+(check-expect (score->rendering 0)
               (local [(define score-pic
                         (text (string-append
                                "Score: 0")
@@ -275,11 +275,11 @@
                                  (- SCREEN-MAX-Y
                                     (ceiling (/ (image-height score-pic) 2)))))))
 
-(define (player-score->rendering p)
+(define (score->rendering score)
   (local [(define score-pic
            (text (string-append
                   "Score: "
-                  (number->string (player-score p)))
+                  (number->string score))
                  SCORE-SIZE
                  SCORE-COLOR))]
     (make-rendering score-pic
@@ -365,7 +365,7 @@
               (foldr render/overlay/crop
                      BACKGROUND
                      (append
-                      (list (player-score->rendering (fish-world-player START))
+                      (list (score->rendering (fish-world-score START))
                             (player->rendering (fish-world-player START)))
                       (map enemy->rendering
                            (fish-world-enemies START)))))
@@ -373,7 +373,7 @@
 (define (render fw)
   (foldr render/overlay/crop
          BACKGROUND
-         (append (list (player-score->rendering (fish-world-player fw))
+         (append (list (score->rendering (fish-world-score fw))
                        (player->rendering (fish-world-player fw)))
                  (map enemy->rendering
                       (fish-world-enemies fw)))))
@@ -597,15 +597,14 @@
      (define PLAYER-MED 26)
      (define PLAYER-LARGE 36)
 
-(define-struct player [loc pic size score])
-;; A Player is a (make-player Posn Image PlayerSize PosInt)
+(define-struct player [loc pic size])
+;; A Player is a (make-player loc pic size)
 ;;  Interpertation:
 ;;   - Posn        loc: the (x,y) position of the Player,
 ;;                      in pixels, using the center of the screen as
 ;;                      the origin and center of the player as the point
 ;;   - Image       pic: a graphic representation of the player's fish
 ;;   - PlayerSize size: the current size of the player, in pixels tall
-;;   - PosInt    score: the player's current score
 
 (define PLAYER-MOVE 10)
 (define PLAYER-COLOR "green")
@@ -618,53 +617,43 @@
                                           make-posn)
                              (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR)
-                             PLAYER-SMALL
-                             0))
+                             PLAYER-SMALL))
 (define PLAYER@TOP-LEFT (make-player (make-posn SCREEN-MAX-X
                                                 SCREEN-MAX-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     (player-score PLAYER1)))
+                                     (player-size PLAYER1)))
 (define PLAYER@TOP-CENT (make-player (make-posn 0
                                                 SCREEN-MAX-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     (player-score PLAYER1)))
+                                     (player-size PLAYER1)))
 (define PLAYER@TOP-RIGHT (make-player (make-posn SCREEN-MIN-X
                                                  SCREEN-MAX-Y)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      (player-score PLAYER1)))
+                                      (player-size PLAYER1)))
 (define PLAYER@CENT-LEFT (make-player (make-posn SCREEN-MAX-X
                                                  0)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      (player-score PLAYER1)))
+                                      (player-size PLAYER1)))
 (define PLAYER@CENT (make-player (make-posn 0
                                             0)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      (player-score PLAYER1)))
+                                      (player-size PLAYER1)))
 (define PLAYER@CENT-RIGHT (make-player (make-posn SCREEN-MIN-X
                                                   0)
                                        (player-pic PLAYER1)
-                                       (player-size PLAYER1)
-                                       (player-score PLAYER1)))
+                                       (player-size PLAYER1)))
 (define PLAYER@BOT-LEFT (make-player (make-posn SCREEN-MAX-X
                                                 SCREEN-MIN-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     (player-score PLAYER1)))
+                                     (player-size PLAYER1)))
 (define PLAYER@BOT-CENT (make-player (make-posn 0
                                                 SCREEN-MIN-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     (player-score PLAYER1)))
+                                     (player-size PLAYER1)))
 (define PLAYER@BOT-RIGHT (make-player (make-posn SCREEN-MIN-X
                                                  SCREEN-MIN-Y)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      (player-score PLAYER1)))
+                                      (player-size PLAYER1)))
 
 ;; Template:
 #; (define (player-fn p)
@@ -768,7 +757,7 @@
             (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
                   [(< rand (+ ENEMY-SMALL-CHANCE
                               ENEMY-MED-CHANCE)) ENEMY-MED]
-                  [else ENEMY-MED]))]
+                  [else ENEMY-LARGE]))]
     (make-enemy (random-pair SCREEN-MIN-X
                              SCREEN-MAX-X
                              SCREEN-MIN-Y
@@ -802,15 +791,17 @@
          ... (loe-fun (rest aloe))]))
 
 ;;----------FishWorld----------
-(define-struct fish-world [player enemies])
-;; An FishWorld is a (make-fsih-world Player ListOfEnemies)
+(define-struct fish-world [player enemies score])
+;; An FishWorld is a (make-fish-world player enemies score)
 ;;  Interrpertation:
 ;;   - Player         player: the player
 ;;   - ListOfEnemies enemies: the enemies currently in play
+;;   - Int             score: the player's current score
 
 ;;Example:
 (define START (make-fish-world PLAYER1
-                               (build-list 15 create-random-enemy)))
+                               (build-list 15 create-random-enemy)
+                               0))
 
 ;; Template:
 #; (define (fish-world-fn fw)
@@ -826,34 +817,34 @@
 ;;           position exceeds one of the screen's limits
 (check-expect (re-appear (make-player (make-posn 50 (+ SCREEN-MAX-Y 1))
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL 5))
+                                      PLAYER-SMALL))
               (make-player (make-posn 50 SCREEN-MIN-Y)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 (check-expect (re-appear (make-player (make-posn 50 (+ SCREEN-MIN-Y -1))
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL 5))
+                                      PLAYER-SMALL))
               (make-player (make-posn 50 SCREEN-MAX-Y)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 (check-expect (re-appear (make-player (make-posn (+ SCREEN-MAX-X 1) 50)
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL 5))
+                                      PLAYER-SMALL))
               (make-player (make-posn SCREEN-MIN-X 50)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 (check-expect (re-appear (make-player (make-posn (+ SCREEN-MIN-X -1) 50)
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL 5))
+                                      PLAYER-SMALL))
               (make-player (make-posn SCREEN-MAX-X 50)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 (check-expect (re-appear (make-player (make-posn 50 50)
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL 5))
+                                      PLAYER-SMALL))
               (make-player (make-posn 50 50)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 
 (define (re-appear p)
   (if (or (> (posn-y (player-loc p)) SCREEN-MAX-Y)
@@ -862,8 +853,7 @@
           (< (posn-x (player-loc p)) SCREEN-MIN-X))
       (make-player (wrap-posn-to-screen (player-loc p))
                    (player-pic p)
-                   (player-size p)
-                   (player-score p))
+                   (player-size p))
       p))
 
 ;;collide?: Player Enemy -> Boolean
@@ -892,7 +882,7 @@
 
 (check-expect (collide?
                (make-player (make-posn 61 37) (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR) 16 0)
+                                        PLAYER-COLOR) 16)
                (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
                                       ENEMY-COLOR)
@@ -901,7 +891,7 @@
               #true)
 (check-expect (collide?
                (make-player (make-posn 9 0) (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR) 16 0)
+                                        PLAYER-COLOR) 16)
                (make-enemy (make-posn 100 100)
                            (draw-fish ENEMY-LARGE
                                       ENEMY-COLOR)
@@ -916,22 +906,22 @@
 ;; Produces a new Player based on the KeyEvent
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL 5)
+                                             PLAYER-SMALL)
                            "down")
               (make-posn 50 (- 50 PLAYER-MOVE)))
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL 5)
+                                             PLAYER-SMALL)
                            "up")
               (make-posn 50 (+ 50 PLAYER-MOVE)))
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL 5)
+                                             PLAYER-SMALL)
                            "right")
               (make-posn (- 50 PLAYER-MOVE) 50))
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL 5)
+                                             PLAYER-SMALL)
                            "left")
               (make-posn (+ 50 PLAYER-MOVE) 50))
 
@@ -953,15 +943,15 @@
 
 (check-expect (player-key-handler (make-player (make-posn 50 50)
                                                (player-pic PLAYER1)
-                                               PLAYER-SMALL 5)
+                                               PLAYER-SMALL)
                                   "up")
               (make-player (make-posn 50 (+ 50 PLAYER-MOVE))
                            (rotate-player PLAYER1
                                           "up")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 (check-expect (player-key-handler (make-player (make-posn 50 SCREEN-MIN-Y)
                                                (player-pic PLAYER1)
-                                               PLAYER-SMALL 5)
+                                               PLAYER-SMALL)
                                   "down")
               (make-player (make-posn 50 (wrap-coordinate (- SCREEN-MIN-Y
                                                              PLAYER-MOVE)
@@ -969,14 +959,14 @@
                                                           SCREEN-MAX-Y))
                            (rotate-player PLAYER1
                                           "down")
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 (check-expect (player-key-handler (make-player (make-posn 50 SCREEN-MIN-Y)
                                                (player-pic PLAYER1)
-                                               PLAYER-SMALL 5)
+                                               PLAYER-SMALL)
                                   "p")
               (make-player (make-posn 50 SCREEN-MIN-Y)
                            (player-pic PLAYER1)
-                           PLAYER-SMALL 5))
+                           PLAYER-SMALL))
 
 (define (player-key-handler p key)
  (re-appear (make-player (move-player p key)
@@ -984,8 +974,7 @@
                              (rotate-player p
                                             key)
                              (player-pic p))
-                         (player-size p)
-                         (player-score p))))
+                         (player-size p))))
 
 ;; key-handler: FishWorld KeyEvent -> FishWorld
 ;; Consumes:
@@ -996,12 +985,14 @@
 (check-expect (key-handler START "left")
               (make-fish-world (player-key-handler (fish-world-player START)
                                                    "left")
-                               (fish-world-enemies START)))
+                               (fish-world-enemies START)
+                               0))
 
 (define (key-handler fw key)
   (make-fish-world (player-key-handler (fish-world-player fw)
                                        key)
-                               (fish-world-enemies fw)))
+                   (fish-world-enemies fw)
+                   0))
 
 
 
@@ -1093,7 +1084,8 @@
 (define (tick-handler fw)
   (make-fish-world (fish-world-player fw)
                    (handle-eating (map tick-enemy (fish-world-enemies fw))
-                                  (fish-world-player fw))))
+                                  (fish-world-player fw))
+                   (fish-world-score fw)))
 
 ;;handle-eating : [ListOf Enemies] Player -> [ListOf Enemies]
 ;;Filters out the fish that the player collides with
@@ -1143,10 +1135,10 @@
 ;(define-struct enemy [loc pic size vel])
 
 (define SCORING-PLAYER1 (make-player (make-posn 25 25) (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR) PLAYER-SMALL 0))
+                                        PLAYER-COLOR) PLAYER-SMALL))
 
 (define SCORING-PLAYER2 (make-player (make-posn 25 25) (draw-fish PLAYER-LARGE
-                                        PLAYER-COLOR) PLAYER-LARGE 0))
+                                        PLAYER-COLOR) PLAYER-LARGE))
 
 (define SCORING-ENEMY1 (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
@@ -1173,15 +1165,17 @@
                            (make-velvect 3 4)))
 (define SCORING-FW1 (make-fish-world
                      SCORING-PLAYER1
-                     (list SCORING-ENEMY1 SCORING-ENEMY2)))
+                     (list SCORING-ENEMY1 SCORING-ENEMY2)
+                     0))
 
 
 (define SCORING-FW2 (make-fish-world
                      SCORING-PLAYER2
-                     (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)))
+                     (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)
+                     0))
 
 
-
+#|
 ;; score-world: FishWord -> FishWorld
 ;; Consumes:
 ;; - FishWorld  fw: the existing FishWorld
@@ -1192,18 +1186,18 @@
               (make-fish-world
                (make-player (player-loc (fish-world-player SCORING-FW2))
                 (player-pic (fish-world-player SCORING-FW2))
-                (player-size (fish-world-player SCORING-FW2))
-                5)
-               (fish-world-enemies SCORING-FW2)))
+                (player-size (fish-world-player SCORING-FW2)))
+               (fish-world-enemies SCORING-FW2)
+               5))
 
 
 (define (score-world fw)
   (make-fish-world
    (make-player (player-loc (fish-world-player fw))
                 (player-pic (fish-world-player fw))
-                (player-size (fish-world-player fw))
-                (accumulate-score (fish-world-player fw) (fish-world-enemies fw)))
-   (fish-world-enemies fw)))
+                (player-size (fish-world-player fw)))
+   (fish-world-enemies fw)
+   (accumulate-score (fish-world-player fw) (fish-world-enemies fw))))
 
 
 ;; accumulate-score: Player [ListOf Enemies] -> PosInt
@@ -1249,6 +1243,8 @@
         [(= (enemy-size enemy) ENEMY-SMALL) SMALL-POINTS]
         [(= (enemy-size enemy) ENEMY-MED) MED-POINTS]
         [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS])) score))
+|#
+
 ;;---------Doomstick:----------
 
 ;; player-or-all-enemies-eaten?: FishWorld -> Boolean
@@ -1258,11 +1254,13 @@
 ;;           in fw are gone
 (check-expect (player-or-all-enemies-eaten?
                (make-fish-world 'eaten 
-                                LOE1))
+                                LOE1
+                                0))
               #true)
 (check-expect (player-or-all-enemies-eaten?
                (make-fish-world PLAYER1
-                                '()))
+                                '()
+                                10))
               #true)
 (check-expect (player-or-all-enemies-eaten? START)
               #false)
@@ -1282,7 +1280,8 @@
 ;;   words "You Win!" or "You Lose!" in the center of the screen
 (check-expect (render-doomstick
                (make-fish-world 'eaten 
-                                LOE1))
+                                LOE1
+                                0))
               (foldr render/overlay/crop
                      BACKGROUND
                     (append (list (make-rendering (text LOST-TEXT
@@ -1293,10 +1292,11 @@
                                  LOE1))))
 (check-expect (render-doomstick
                (make-fish-world PLAYER1
-                                '()))
+                                '()
+                                10))
               (foldr render/overlay/crop
                   BACKGROUND
-                  (list (player-score->rendering PLAYER1)
+                  (list (score->rendering 10)
                         (player->rendering PLAYER1)
                         (make-rendering (text WON-TEXT
                                               SCORE-SIZE
@@ -1316,7 +1316,7 @@
           [(empty? (fish-world-enemies fw))
            (foldr render/overlay/crop
                   BACKGROUND
-                  (list (player-score->rendering (fish-world-player fw))
+                  (list (score->rendering (fish-world-score fw))
                         (player->rendering (fish-world-player fw))
                         (make-rendering (text WON-TEXT
                                               SCORE-SIZE
