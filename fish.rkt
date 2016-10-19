@@ -362,7 +362,7 @@
 ;;   score in the upper right corner of the screen
 
 (check-expect (render START)
-              (foldl render/overlay/crop
+              (foldr render/overlay/crop
                      BACKGROUND
                      (append
                       (list (player-score->rendering (fish-world-player START))
@@ -371,7 +371,7 @@
                            (fish-world-enemies START)))))
 
 (define (render fw)
-  (foldl render/overlay/crop
+  (foldr render/overlay/crop
          BACKGROUND
          (append (list (player-score->rendering (fish-world-player fw))
                        (player->rendering (fish-world-player fw)))
@@ -1283,7 +1283,7 @@
 (check-expect (render-doomstick
                (make-fish-world 'eaten 
                                 LOE1))
-              (foldl render/overlay/crop
+              (foldr render/overlay/crop
                      BACKGROUND
                     (append (list (make-rendering (text LOST-TEXT
                                                         SCORE-SIZE
@@ -1294,7 +1294,7 @@
 (check-expect (render-doomstick
                (make-fish-world PLAYER1
                                 '()))
-              (foldl render/overlay/crop
+              (foldr render/overlay/crop
                   BACKGROUND
                   (list (player-score->rendering PLAYER1)
                         (player->rendering PLAYER1)
@@ -1305,7 +1305,7 @@
 
 (define (render-doomstick fw)
     (cond [(eq? (fish-world-player fw) 'eaten)
-           (foldl render/overlay/crop
+           (foldr render/overlay/crop
                   BACKGROUND
                   (append (list (make-rendering (text LOST-TEXT
                                                       SCORE-SIZE
@@ -1314,7 +1314,7 @@
                           (map enemy->rendering
                                (fish-world-enemies fw))))]
           [(empty? (fish-world-enemies fw))
-           (foldl render/overlay/crop
+           (foldr render/overlay/crop
                   BACKGROUND
                   (list (player-score->rendering (fish-world-player fw))
                         (player->rendering (fish-world-player fw))
