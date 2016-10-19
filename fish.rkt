@@ -1012,11 +1012,47 @@
                            ENEMY-SMALL
                            (make-velvect 0 0)))
 (define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
+
+(define PLAYER-MED-THRESHOLD 10)
+(define PLAYER-LARGE-THRESHOLD 25)
+;; tick-player: Player Int -> Player
+;; Consumes:
+;;  - Player p: the Player whose state is to be updated
+;;  - Int    s: the Player's current score
+;; Produces: a copy of p whose size and pic fields
+;;           are updated if s has passed a threshold and
+;;           these fields have yet to be adjusted accordingly
+(check-expect (tick-player PLAYER1 0) PLAYER1)
+(check-expect (tick-player PLAYER1 10)
+              (make-player (player-loc PLAYER1)
+                           (draw-fish PLAYER-MED
+                                      PLAYER-COLOR)
+                           PLAYER-MED))
+(check-expect (tick-player PLAYER1 25)
+              (make-player (player-loc PLAYER1)
+                           (draw-fish PLAYER-LARGE
+                                      PLAYER-COLOR)
+                           PLAYER-LARGE))
+
+(define (tick-player p s)
+  (cond [(and (>= s PLAYER-LARGE-THRESHOLD)
+              (< (player-size p) PLAYER-LARGE))
+         (make-player (player-loc p)
+                      (draw-fish PLAYER-LARGE
+                                 PLAYER-COLOR)
+                      PLAYER-LARGE)]
+        [(and (>= s PLAYER-MED-THRESHOLD)
+              (< (player-size p) PLAYER-MED))
+         (make-player (player-loc p)
+                      (draw-fish PLAYER-MED
+                                 PLAYER-COLOR)
+                      PLAYER-MED)]
+        [else p]))
  
 ;; Probability (in percent) that a given Enemy's velevt will be
 ;;  randomized in a given tick:
 (define ENEMY-CHANGE-CHANCE 5)
-;; tick-enemy: Enemy] -> Enemy
+;; tick-enemy: Enemy -> Enemy
 ;; Consumes:
 ;;  - Enemy e: the Enemy to be updated for the next tick
 ;; Produces a new Enemy with an adjusted position and a
@@ -1082,7 +1118,7 @@
 
 
 (define (tick-handler fw)
-  (make-fish-world (fish-world-player fw)
+  (make-fish-world (tick-player (fish-world-player fw) (fish-world-score fw))
                    (handle-eating (map tick-enemy (fish-world-enemies fw))
                                   (fish-world-player fw))
                    (fish-world-score fw)))
