@@ -1077,6 +1077,8 @@
    (define LARGE-POINTS 3)
 
 
+;(define-struct enemy [loc pic size vel])
+
 (define SCORING-PLAYER1 (make-player (make-posn 25 25) (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR) PLAYER-SMALL 0))
 
@@ -1106,30 +1108,64 @@
                                       ENEMY-COLOR)
                            ENEMY-SMALL
                            (make-velvect 3 4)))
-(define SCORING-FW1 (make-fish-world SCORING-PLAYER1 (list SCORING-ENEMY1 SCORING-ENEMY2)))
+(define SCORING-FW1 (make-fish-world
+                     SCORING-PLAYER1
+                     (list SCORING-ENEMY1 SCORING-ENEMY2)))
 
 
-(define SCORING-FW2 (make-fish-world SCORING-PLAYER2 (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)))
+(define SCORING-FW2 (make-fish-world
+                     SCORING-PLAYER2
+                     (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)))
 
-;; new-score-player: Player Enemy -> Player
+
+
+;; score-world: FishWord -> FishWorld
 ;; Consumes:
-;;  - Player  player: the existing Player
-;;  - Enemy    Enemy: an existing Enemy
-;; Produces: a Player with a new score depending on a possible collision
-(check-expect (new-score-player SCORING-PLAYER1 SCORING-ENEMY1) SCORING-PLAYER1)
-(check-expect (new-score-player SCORING-PLAYER2 SCORING-ENEMY1)
-              (make-player (player-loc SCORING-PLAYER2)
-                           (player-pic SCORING-PLAYER2)
-                           (player-size SCORING-PLAYER2)
-                           (add-points (player-score SCORING-PLAYER2) SCORING-PLAYER2 SCORING-ENEMY1)))
+;; - FishWorld  fw: the existing FishWorld
+;; Produces: a new fish world with an updated score
 
-(define (new-score-player player enemy)
-  (make-player
-   (player-loc player)
-   (player-pic player)
-   (player-size player)
-    (add-points (player-score player) player enemy)))
-   
+(check-expect (score-world SCORING-FW1) SCORING-FW1)
+(check-expect (score-world SCORING-FW2)
+              (make-fish-world
+               (make-player (player-loc (fish-world-player SCORING-FW2))
+                (player-pic (fish-world-player SCORING-FW2))
+                (player-size (fish-world-player SCORING-FW2))
+                5)
+               (fish-world-enemies SCORING-FW2)))
+
+
+(define (score-world fw)
+  (make-fish-world
+   (make-player (player-loc (fish-world-player fw))
+                (player-pic (fish-world-player fw))
+                (player-size (fish-world-player fw))
+                (accumulate-score (fish-world-player fw) (fish-world-enemies fw)))
+   (fish-world-enemies fw)))
+
+
+;; accumulate-score: Player [ListOf Enemies] -> PosInt
+;; Consumes
+;;  - Player             player: the existing Player
+;;  - [ListOf Enemies]  enemies: an existing [ListOf Enemies]
+;; Produces: a score for player based on any collisions with enemies
+
+(check-expect (accumulate-score (fish-world-player SCORING-FW1)
+                           (fish-world-enemies SCORING-FW1))
+                           0)
+(check-expect (accumulate-score (fish-world-player SCORING-FW2)
+                           (fish-world-enemies SCORING-FW2))
+                           5)
+
+(define (accumulate-score player enemies)
+  (cond
+    [(empty? enemies) 0]
+    [(cons? enemies) 
+   (+ (add-points (player-score player) player (first enemies))
+      (accumulate-score player (rest enemies)))]))
+
+
+
+
 ;; add-points: PosInt Player Enemy -> PosInt
 ;; Consumes:
 ;;  - PosInt   score: the existing score
@@ -1161,6 +1197,6 @@
   (big-bang fw
             [on-key key-handler]
             [to-draw render]
-            [on-tick tick-handler]))
+            [on-tick  tick-handler]))
 
 (main START)
