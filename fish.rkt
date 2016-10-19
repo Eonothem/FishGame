@@ -986,13 +986,13 @@
               (make-fish-world (player-key-handler (fish-world-player START)
                                                    "left")
                                (fish-world-enemies START)
-                               0))
+                               (fish-world-score START)))
 
 (define (key-handler fw key)
   (make-fish-world (player-key-handler (fish-world-player fw)
                                        key)
                    (fish-world-enemies fw)
-                   0))
+                   (fish-world-score fw)))
 
 
 
@@ -1133,7 +1133,7 @@
   (make-fish-world (tick-player (fish-world-player fw) (fish-world-score fw))
                    (handle-eating (map tick-enemy (fish-world-enemies fw))
                                   (fish-world-player fw))
-                   (fish-world-score fw)))
+                   (accumulate-score (fish-world-score fw) (fish-world-player fw) (fish-world-enemies fw))))
 
 ;;handle-eating : [ListOf Enemies] Player -> [ListOf Enemies]
 ;;Filters out the fish that the player collides with
