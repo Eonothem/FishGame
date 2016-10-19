@@ -645,7 +645,7 @@
  ...(velvect-vy v)...)
 
 
-(define-struct enemy [size loc vel pic])
+(define-struct enemy [loc pic size vel])
 ;; An Enemy is a structure (make-enemy size loc vel pic)
 ;; Interpretation:
 ;; EnemySize size: the size of the Enemy
@@ -657,18 +657,18 @@
 (define ENEMY-COLOR "red")
 
 ;; Example:
-(define SHARK (make-enemy ENEMY-LARGE
-                          (make-posn 25 25)
-                          FIVE
+(define SHARK (make-enemy (make-posn 25 25)
                           (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR)))
+                                     ENEMY-COLOR)
+                          ENEMY-LARGE
+                          FIVE))
 ;; Template:
 #;
 (define (enemy-fun e)
-  ...(enemy-size e)...
   ...(enemy-loc e)...
-  ...(enemy-vel e)...
-  ...(enemy-pic e)...)
+  ...(enemy-pic e)...
+  ...(enemy-size e)...
+  ...(enemy-vel e)...)
 
 ;;----------ListOfEnemies----------
 
