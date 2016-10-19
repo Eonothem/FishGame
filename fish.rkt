@@ -1100,11 +1100,18 @@
 ;;Doesn't accout for size yet
 ;;TODO: Unit Tests, size handling
 (define (handle-eating aloe player)
-  (local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))]
+  (local [
+          (define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))
+          (define (filter-size aloe player)
+               (filter (lambda (e) (< (enemy-size e) (player-size player))) aloe))
+          ]
     (if (empty? COLLIDED-FISH)
         aloe
-        (filter (lambda (e) (not (member e COLLIDED-FISH))) aloe)
+        (filter (lambda (e) (not (member e (filter-size COLLIDED-FISH player)))) aloe)
       )))
+
+
+
 
 ;;enemy-equals?
 ;;I dont think we need this since i didn't know the member function worked in the case above
