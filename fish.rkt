@@ -287,7 +287,7 @@
 ;;   - Rendering rend: the Rendering to be displayed
 ;;   - Image    bkgnd: the background to render the player on
 ;;  Produces: an Image containing rend's pic rendered on top
-;;   of bkgnd at rend's loc
+;;            of bkgnd at rend's loc
 
 (check-expect (render/overlay (make-rendering (player-pic PLAYER1)
                                               (make-posn 25 25))
@@ -311,7 +311,7 @@
 
 (check-expect (render START)
               (foldr (λ (rend comp)
-                       (wrap-to-background (render/overlay rend
+                       (crop-to-background (render/overlay rend
                                                            comp)
                                            rend
                                            BACKGROUND))
@@ -323,14 +323,14 @@
 (define (render fw)
   (local [(define (render/overlay/wrap rend comp)
             (if (out-of-screen? rend)
-                (wrap-to-background (render/overlay rend
+                (crop-to-background (render/overlay rend
                                                     comp)
                                     rend
                                     BACKGROUND)
                 (render/overlay rend
                                 comp)))]
   (foldr (λ (rend comp)
-           (wrap-to-background (render/overlay rend
+           (crop-to-background (render/overlay rend
                                                comp)
                                rend
                                BACKGROUND))
@@ -341,7 +341,11 @@
 
 ;;---------Wrapping----------
 
-;; out-of-screen?: Rendering -> Boolean 
+;; out-of-screen?: Rendering -> Boolean
+;; Consumes:
+;;  - Rendering rend: the Rendering being tested
+;; Produces: whether or not rend's pic fits completely
+;;           onto the screen when placed at rend's posn
 
 (define (out-of-screen? rend)
   (or (> (+ (posn-x (rendering-loc rend))
@@ -357,7 +361,7 @@
             (ceiling (/ (image-height (rendering-pic rend)) 2)))
          SCREEN-MIN-Y)))
 
-;; wrap-to-background: Image Rendering Image -> Image
+;; crop-to-background: Image Rendering Image -> Image
 ;;  Consumes:
 ;;   - Image     comp: an compositite Image consisting of
 ;;                     some rend's pic overlain over bkgnd
@@ -366,12 +370,9 @@
 ;;   - Image    bkgnd: the background Image used to produce
 ;;                     comp
 ;;  Produces: an Image with the portions of comp outside of
-;;            the bounds of bkgnd displayed as if its left
-;;            edge was adjacent to its right edge and its
-;;            top edge was adjacent to its bottom edge for
-;;            rendering purposes
+;;            the bounds of bkgnd removed
 
-(check-expect (wrap-to-background (render/overlay
+(check-expect (crop-to-background (render/overlay
                                    (player->rendering PLAYER@BOT-CENT)
                                    BACKGROUND)
                                   (player->rendering PLAYER@BOT-CENT)
@@ -401,7 +402,7 @@
                  ;cropped-quad-y
                  uncropped-quad))
                  ;BACKGROUND)))
-(check-expect (wrap-to-background (render/overlay
+(check-expect (crop-to-background (render/overlay
                                    (player->rendering PLAYER@CENT-RIGHT)
                                    BACKGROUND)
                                   (player->rendering PLAYER@CENT-RIGHT)
@@ -433,7 +434,7 @@
                  uncropped-quad))
                  ;BACKGROUND)))
 
-(define (wrap-to-background comp rend bkgnd)
+(define (crop-to-background comp rend bkgnd)
   (local
     [#|(define cropped-quad-xy
        (crop/align (posn-x-place (rendering-loc rend))
