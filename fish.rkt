@@ -597,14 +597,15 @@
      (define PLAYER-MED 26)
      (define PLAYER-LARGE 36)
 
-(define-struct player [loc pic size])
+(define-struct player [loc pic size eaten?])
 ;; A Player is a (make-player loc pic size)
 ;;  Interpertation:
 ;;   - Posn        loc: the (x,y) position of the Player,
 ;;                      in pixels, using the center of the screen as
-;;                      the origin and center of the player as the point
-;;   - Image       pic: a graphic representation of the player's fish
-;;   - PlayerSize size: the current size of the player, in pixels tall
+;;                      the origin and center of the Player as the point
+;;   - Image       pic: a graphic representation of the Player's fish
+;;   - PlayerSize size: the current size of the Player, in pixels tall
+;;   - Boolean  eaten?: whether or not the Player has been eaten
 
 (define PLAYER-MOVE 10)
 (define PLAYER-COLOR "green")
@@ -617,50 +618,60 @@
                                           make-posn)
                              (draw-fish PLAYER-SMALL
                                         PLAYER-COLOR)
-                             PLAYER-SMALL))
+                             PLAYER-SMALL
+                             #false))
 (define PLAYER@TOP-LEFT (make-player (make-posn SCREEN-MAX-X
                                                 SCREEN-MAX-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)))
+                                     (player-size PLAYER1)
+                                     #false))
 (define PLAYER@TOP-CENT (make-player (make-posn 0
                                                 SCREEN-MAX-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)))
+                                     (player-size PLAYER1)
+                                     #false))
 (define PLAYER@TOP-RIGHT (make-player (make-posn SCREEN-MIN-X
                                                  SCREEN-MAX-Y)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)))
+                                      (player-size PLAYER1)
+                                      #false))
 (define PLAYER@CENT-LEFT (make-player (make-posn SCREEN-MAX-X
                                                  0)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)))
+                                      (player-size PLAYER1)
+                                      #false))
 (define PLAYER@CENT (make-player (make-posn 0
                                             0)
-                                      (player-pic PLAYER1)
-                                      (player-size PLAYER1)))
+                                 (player-pic PLAYER1)
+                                 (player-size PLAYER1)
+                                 #false))
 (define PLAYER@CENT-RIGHT (make-player (make-posn SCREEN-MIN-X
                                                   0)
                                        (player-pic PLAYER1)
-                                       (player-size PLAYER1)))
+                                       (player-size PLAYER1)
+                                       #false))
 (define PLAYER@BOT-LEFT (make-player (make-posn SCREEN-MAX-X
                                                 SCREEN-MIN-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)))
+                                     (player-size PLAYER1)
+                                     #false))
 (define PLAYER@BOT-CENT (make-player (make-posn 0
                                                 SCREEN-MIN-Y)
                                      (player-pic PLAYER1)
-                                     (player-size PLAYER1)))
+                                     (player-size PLAYER1)
+                                     #false))
 (define PLAYER@BOT-RIGHT (make-player (make-posn SCREEN-MIN-X
                                                  SCREEN-MIN-Y)
                                       (player-pic PLAYER1)
-                                      (player-size PLAYER1)))
+                                      (player-size PLAYER1)
+                                      #false))
 
 ;; Template:
 #; (define (player-fn p)
      ... (posn-fn (player-loc p))
      ... (player-pic p)
      ... (player-size p)
-     ... (player-score p))
+     ... (player-eaten? p))
 
 ;;----------Enemy----------
 
@@ -817,34 +828,44 @@
 ;;           position exceeds one of the screen's limits
 (check-expect (re-appear (make-player (make-posn 50 (+ SCREEN-MAX-Y 1))
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL))
+                                      PLAYER-SMALL
+                                      #false))
               (make-player (make-posn 50 SCREEN-MIN-Y)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 (check-expect (re-appear (make-player (make-posn 50 (+ SCREEN-MIN-Y -1))
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL))
+                                      PLAYER-SMALL
+                                      #false))
               (make-player (make-posn 50 SCREEN-MAX-Y)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 (check-expect (re-appear (make-player (make-posn (+ SCREEN-MAX-X 1) 50)
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL))
+                                      PLAYER-SMALL
+                                      #false))
               (make-player (make-posn SCREEN-MIN-X 50)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 (check-expect (re-appear (make-player (make-posn (+ SCREEN-MIN-X -1) 50)
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL))
+                                      PLAYER-SMALL
+                                      #false))
               (make-player (make-posn SCREEN-MAX-X 50)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 (check-expect (re-appear (make-player (make-posn 50 50)
                                       (draw-fish PLAYER-SMALL "blue")
-                                      PLAYER-SMALL))
+                                      PLAYER-SMALL
+                                      #false))
               (make-player (make-posn 50 50)
                            (draw-fish PLAYER-SMALL "blue")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 
 (define (re-appear p)
   (if (or (> (posn-y (player-loc p)) SCREEN-MAX-Y)
@@ -853,7 +874,8 @@
           (< (posn-x (player-loc p)) SCREEN-MIN-X))
       (make-player (wrap-posn-to-screen (player-loc p))
                    (player-pic p)
-                   (player-size p))
+                   (player-size p)
+                   (player-eaten? p))
       p))
 
 ;;collide?: Player Enemy -> Boolean
@@ -881,8 +903,11 @@
          (> (+ y1 h1) y2))))
 
 (check-expect (collide?
-               (make-player (make-posn 61 37) (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR) 16)
+               (make-player (make-posn 61 37)
+                            (draw-fish PLAYER-SMALL
+                                       PLAYER-COLOR)
+                            16
+                            #false)
                (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
                                       ENEMY-COLOR)
@@ -890,8 +915,11 @@
                            (make-velvect 3 4)))
               #true)
 (check-expect (collide?
-               (make-player (make-posn 9 0) (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR) 16)
+               (make-player (make-posn 9 0)
+                            (draw-fish PLAYER-SMALL
+                                       PLAYER-COLOR)
+                            16
+                            #false)
                (make-enemy (make-posn 100 100)
                            (draw-fish ENEMY-LARGE
                                       ENEMY-COLOR)
@@ -906,22 +934,26 @@
 ;; Produces a new Player based on the KeyEvent
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL)
+                                             PLAYER-SMALL
+                                             #false)
                            "down")
               (make-posn 50 (- 50 PLAYER-MOVE)))
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL)
+                                             PLAYER-SMALL
+                                             #false)
                            "up")
               (make-posn 50 (+ 50 PLAYER-MOVE)))
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL)
+                                             PLAYER-SMALL
+                                             #false)
                            "right")
               (make-posn (- 50 PLAYER-MOVE) 50))
 (check-expect (move-player (make-player (make-posn 50 50)
                                              (draw-fish PLAYER-SMALL "blue")
-                                             PLAYER-SMALL)
+                                             PLAYER-SMALL
+                                             #false)
                            "left")
               (make-posn (+ 50 PLAYER-MOVE) 50))
 
@@ -943,15 +975,18 @@
 
 (check-expect (player-key-handler (make-player (make-posn 50 50)
                                                (player-pic PLAYER1)
-                                               PLAYER-SMALL)
+                                               PLAYER-SMALL
+                                               #false)
                                   "up")
               (make-player (make-posn 50 (+ 50 PLAYER-MOVE))
                            (rotate-player PLAYER1
                                           "up")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 (check-expect (player-key-handler (make-player (make-posn 50 SCREEN-MIN-Y)
                                                (player-pic PLAYER1)
-                                               PLAYER-SMALL)
+                                               PLAYER-SMALL
+                                               #false)
                                   "down")
               (make-player (make-posn 50 (wrap-coordinate (- SCREEN-MIN-Y
                                                              PLAYER-MOVE)
@@ -959,14 +994,17 @@
                                                           SCREEN-MAX-Y))
                            (rotate-player PLAYER1
                                           "down")
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 (check-expect (player-key-handler (make-player (make-posn 50 SCREEN-MIN-Y)
                                                (player-pic PLAYER1)
-                                               PLAYER-SMALL)
+                                               PLAYER-SMALL
+                                               #false)
                                   "p")
               (make-player (make-posn 50 SCREEN-MIN-Y)
                            (player-pic PLAYER1)
-                           PLAYER-SMALL))
+                           PLAYER-SMALL
+                           #false))
 
 (define (player-key-handler p key)
  (re-appear (make-player (move-player p key)
@@ -974,7 +1012,8 @@
                              (rotate-player p
                                             key)
                              (player-pic p))
-                         (player-size p))))
+                         (player-size p)
+                         (player-eaten? p))))
 
 ;; key-handler: FishWorld KeyEvent -> FishWorld
 ;; Consumes:
@@ -1039,12 +1078,14 @@
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-MED
                                       PLAYER-COLOR)
-                           PLAYER-MED))
+                           PLAYER-MED
+                           #false))
 (check-expect (tick-player PLAYER1 (ceiling PLAYER-LARGE-THRESHOLD))
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-LARGE
                                       PLAYER-COLOR)
-                           PLAYER-LARGE))
+                           PLAYER-LARGE
+                           #false))
 
 (define (tick-player p s)
   (cond [(and (>= s PLAYER-LARGE-THRESHOLD)
@@ -1052,13 +1093,15 @@
          (make-player (player-loc p)
                       (draw-fish PLAYER-LARGE
                                  PLAYER-COLOR)
-                      PLAYER-LARGE)]
+                      PLAYER-LARGE
+                      (player-eaten? p))]
         [(and (>= s PLAYER-MED-THRESHOLD)
               (< (player-size p) PLAYER-MED))
          (make-player (player-loc p)
                       (draw-fish PLAYER-MED
                                  PLAYER-COLOR)
-                      PLAYER-MED)]
+                      PLAYER-MED
+                      (player-eaten? p))]
         [else p]))
  
 ;; Probability (in percent) that a given Enemy's velevt will be
@@ -1150,12 +1193,6 @@
         (filter (lambda (e) (not (member e (filter-size COLLIDED-FISH player)))) aloe)
       )))
 
-;;remove-smaller : [ListOf Enemies] Player -> [ListOf Enemies]
-;;Removes all of the fish smaller in aloe than the player
-;;(define (remove-smaller aloe player)
-  
-
-
 ;(define-struct fish-world [player enemies])
 
 
@@ -1169,11 +1206,17 @@
 
 ;(define-struct enemy [loc pic size vel])
 
-(define SCORING-PLAYER1 (make-player (make-posn 25 25) (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR) PLAYER-SMALL))
+(define SCORING-PLAYER1 (make-player (make-posn 25 25)
+                                     (draw-fish PLAYER-SMALL
+                                                PLAYER-COLOR)
+                                     PLAYER-SMALL
+                                     #false))
 
-(define SCORING-PLAYER2 (make-player (make-posn 25 25) (draw-fish PLAYER-LARGE
-                                        PLAYER-COLOR) PLAYER-LARGE))
+(define SCORING-PLAYER2 (make-player (make-posn 25 25)
+                                     (draw-fish PLAYER-LARGE
+                                                PLAYER-COLOR)
+                                     PLAYER-LARGE
+                                     #false))
 
 (define SCORING-ENEMY1 (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
