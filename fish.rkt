@@ -1210,34 +1210,107 @@
                      0))
 
 
-#|
-;; score-world: FishWord -> FishWorld
-;; Consumes:
-;; - FishWorld  fw: the existing FishWorld
-;; Produces: a new fish world with an updated score
+;;---------Scoring:-------
 
-(check-expect (score-world SCORING-FW1) SCORING-FW1)
-(check-expect (score-world SCORING-FW2)
-              (make-fish-world
-               (make-player (player-loc (fish-world-player SCORING-FW2))
-                (player-pic (fish-world-player SCORING-FW2))
-                (player-size (fish-world-player SCORING-FW2)))
-               (fish-world-enemies SCORING-FW2)
-               5))
+;; A PointVal is one of the following:
+   (define SMALL-POINTS 1)
+   (define MED-POINTS 2)
+   (define LARGE-POINTS 3)
 
 
-(define (score-world fw)
-  (make-fish-world
-   (make-player (player-loc (fish-world-player fw))
-                (player-pic (fish-world-player fw))
-                (player-size (fish-world-player fw)))
-   (fish-world-enemies fw)
-   (accumulate-score (fish-world-player fw) (fish-world-enemies fw))))
+;(define-struct enemy [loc pic size vel])
+
+(define SCORING-PLAYER1 (make-player (make-posn 25 25) (draw-fish PLAYER-SMALL
+                                        PLAYER-COLOR) PLAYER-SMALL))
+
+(define SCORING-PLAYER2 (make-player (make-posn 25 25) (draw-fish PLAYER-LARGE
+                                        PLAYER-COLOR) PLAYER-LARGE))
+
+(define SCORING-ENEMY1 (make-enemy (make-posn 25 25)
+                           (draw-fish ENEMY-LARGE
+                                      ENEMY-COLOR)
+                           ENEMY-LARGE
+                           (make-velvect 3 4)))
+
+(define SCORING-ENEMY2 (make-enemy (make-posn 25 25)
+                           (draw-fish ENEMY-MED
+                                      ENEMY-COLOR)
+                           ENEMY-MED
+                           (make-velvect 3 4)))
+
+(define SCORING-ENEMY3 (make-enemy (make-posn 25 25)
+                           (draw-fish ENEMY-SMALL
+                                      ENEMY-COLOR)
+                           ENEMY-SMALL
+                           (make-velvect 3 4)))
+
+(define SCORING-ENEMY4 (make-enemy (make-posn 100 100)
+                           (draw-fish ENEMY-SMALL
+                                      ENEMY-COLOR)
+                           ENEMY-SMALL
+                           (make-velvect 3 4)))
+(define SCORING-FW1 (make-fish-world
+                     SCORING-PLAYER1
+                     (list SCORING-ENEMY1 SCORING-ENEMY2)
+                     0))
+
+(define SCORING-FW3 (make-fish-world
+                     SCORING-PLAYER1
+                     (list SCORING-ENEMY1)
+                     2))
+
+(define SCORING-FW2 (make-fish-world
+                     SCORING-PLAYER2
+                     (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)
+                     0))
+
+
+
 
 
 ;; accumulate-score: Player [ListOf Enemies] -> PosInt
 ;; Consumes
 ;;  - Player             player: the existing Player
+;;  - [ListOf Enemies]  enemies: an existing [ListOf Enemies]
+;; Produces: a score for player based on any collisions with enemies
+(check-expect (accumulate-score 5 (fish-world-player SCORING-FW1)
+                           (fish-world-enemies SCORING-FW1))
+                           5)
+(check-expect (accumulate-score 0 (fish-world-player SCORING-FW1)
+                           (fish-world-enemies SCORING-FW1))
+                           0)
+(check-expect (accumulate-score 0 (fish-world-player SCORING-FW2)
+                           (fish-world-enemies SCORING-FW2))
+              5)
+
+
+(define (accumulate-score  score player enemies)
+(local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) enemies))]
+    (cond
+      [(empty? COLLIDED-FISH) score]
+      [(cons? COLLIDED-FISH) 
+       (+ (get-points player (first COLLIDED-FISH)) 
+          (accumulate-score score player (rest COLLIDED-FISH)))])))
+
+
+;; get-points: PosInt Player Enemy -> PosInt
+;; Consumes:
+;;  - PosInt   score: the existing score
+;;  - Player  player: the existing Player
+;;  - Enemy    Enemy: an existing Enemy
+;; Produces: a new score value 
+(check-expect (get-points SCORING-PLAYER1 SCORING-ENEMY1) 0)
+(check-expect (get-points SCORING-PLAYER2 SCORING-ENEMY1) 3)
+(check-expect (get-points SCORING-PLAYER2 SCORING-ENEMY2) 2)
+(check-expect (get-points SCORING-PLAYER2 SCORING-ENEMY3) 1)
+(check-expect (get-points SCORING-PLAYER1 SCORING-ENEMY4) 1)
+
+(define (get-points player enemy) 
+  (cond
+    [(> (enemy-size enemy) (player-size player)) 0]
+    [(= (enemy-size enemy) ENEMY-SMALL) SMALL-POINTS]
+    [(= (enemy-size enemy) ENEMY-MED) MED-POINTS]
+    [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS]))
 ;;  - [ListOf Enemies]  enemies: an existing [ListOf Enemies]
 ;; Produces: a score for player based on any collisions with enemies
 
