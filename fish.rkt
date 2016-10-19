@@ -1150,19 +1150,6 @@
         (filter (lambda (e) (not (member e (filter-size COLLIDED-FISH player)))) aloe)
       )))
 
-
-
-
-;;enemy-equals?
-;;I dont think we need this since i didn't know the member function worked in the case above
-(define (enemy-equals? e1 e2)
-  (and  (= (posn-x (enemy-loc e1)) (posn-x (enemy-loc e2)))
-         (= (posn-y (enemy-loc e1)) (posn-y (enemy-loc e2)))
-         (equal? (enemy-pic e1) (enemy-pic e2))
-         (equal? (enemy-size e1) (enemy-size e2))
-         (= (velvect-vx (enemy-vel e1)) (velvect-vx (enemy-loc e2)))
-         (= (velvect-vy (enemy-vel e1)) (velvect-vy (enemy-loc e2)))))
-
 ;;remove-smaller : [ListOf Enemies] Player -> [ListOf Enemies]
 ;;Removes all of the fish smaller in aloe than the player
 ;;(define (remove-smaller aloe player)
