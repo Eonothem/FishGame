@@ -889,15 +889,15 @@
   (local [
           (define w1 (image-width (player-pic p)))
           (define h1 (image-height (player-pic p)))
-          (define x1 (ceiling (+ (posn-x (player-loc p))
+          (define x1 (ceiling (- (posn-x (player-loc p))
                                  (/ w1 2))))
-          (define y1 (ceiling (+ (posn-y (player-loc p))
+          (define y1 (ceiling (- (posn-y (player-loc p))
                                  (/ h1 2))))
           (define w2 (image-width (enemy-pic e)))
           (define h2 (image-height (enemy-pic e)))
-          (define x2 (ceiling (+ (posn-x (enemy-loc e))
+          (define x2 (ceiling (- (posn-x (enemy-loc e))
                                  (/ w2 2))))
-          (define y2 (ceiling (+ (posn-y (enemy-loc e))
+          (define y2 (ceiling (- (posn-y (enemy-loc e))
                                  (/ h2 2))))]
 
     (and (< x1 (+ x2 w2))
@@ -1110,7 +1110,11 @@
                                  PLAYER-COLOR)
                       PLAYER-MED
                       eaten?)]
-        [else p]))
+        [else
+         (make-player (player-loc p)
+                      (player-pic p)
+                      (player-size p)
+                      eaten?)]))
 
 ;; Probability (in percent) that a given Enemy's velevt will be
 ;;  randomized in a given tick:
@@ -1188,7 +1192,7 @@
                       (fish-world-player fw))
                      (accumulate-score (fish-world-score fw)
                                        (fish-world-player fw)
-                                       (fish-world-enemies fw)))))
+                                       new-loe))))
 
 ;;handle-enemy-eating : [ListOf Enemies] Player -> [ListOf Enemies]
 ;;Filters out the fish that the player collides with
@@ -1204,7 +1208,7 @@
         (filter (lambda (e) (not (member e (filter-size COLLIDED-FISH player)))) aloe)
       )))
 
-;; handle-player-eating : [ListOf Enemies] Player -> [ListOf Enemies]
+;; handle-player-eating : [ListOf Enemies] Player -> Boolean
 ;; Consumes:
 ;;  - [ListOf Enemy] aloe: the [ListOf Enemy] in the current FishWorld 
 ;;  - Player            p: the current Player
