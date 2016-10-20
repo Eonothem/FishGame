@@ -887,15 +887,18 @@
 ;;TODO Unit Tests
 (define (collide? p e)
   (local [
-          (define x1 (posn-x (player-loc p)))
-          (define y1 (posn-y (player-loc p)))
           (define w1 (image-width (player-pic p)))
           (define h1 (image-height (player-pic p)))
-            
-          (define x2 (posn-x (enemy-loc e)))
-          (define y2 (posn-y (enemy-loc e)))
+          (define x1 (ceiling (+ (posn-x (player-loc p))
+                                 (/ w1 2))))
+          (define y1 (ceiling (+ (posn-y (player-loc p))
+                                 (/ h1 2))))
           (define w2 (image-width (enemy-pic e)))
-          (define h2 (image-height (enemy-pic e)))]
+          (define h2 (image-height (enemy-pic e)))
+          (define x2 (ceiling (+ (posn-x (enemy-loc e))
+                                 (/ w2 2))))
+          (define y2 (ceiling (+ (posn-y (enemy-loc e))
+                                 (/ h2 2))))]
 
     (and (< x1 (+ x2 w2))
          (> (+ x1 w1) x2)
@@ -1031,9 +1034,7 @@
   (make-fish-world (player-key-handler (fish-world-player fw)
                                        key)
                    (fish-world-enemies fw)
-                   0))
-
-
+                   (fish-world-score fw)))
 
 (define ENEMY1 (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
@@ -1067,44 +1068,50 @@
                              (fish-world-enemies START)))
            2
            THRESHOLD-PROPORTION)))
-;; tick-player: Player Int -> Player
+;; tick-player: Player Int Boolean -> Player
 ;; Consumes:
-;;  - Player p: the Player whose state is to be updated
-;;  - Int    s: the Player's current score
+;;  - Player       p: the Player whose state is to be updated
+;;  - Int          s: the Player's current score
+;;  - Boolean eaten?: whether or not the Player has been eaten
 ;; Produces: a copy of p whose size and pic fields
 ;;           are updated if s has passed a threshold and
-;;           these fields have yet to be adjusted accordingly
-(check-expect (tick-player PLAYER1 0) PLAYER1)
-(check-expect (tick-player PLAYER1 (ceiling PLAYER-MED-THRESHOLD))
+;;           these fields have yet to be adjusted accordingly,
+;;           and sets p's eaten? field to match eaten?
+(check-expect (tick-player PLAYER1 0 #false) PLAYER1)
+(check-expect (tick-player PLAYER1
+                           (ceiling PLAYER-MED-THRESHOLD)
+                           #false)
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-MED
                                       PLAYER-COLOR)
                            PLAYER-MED
                            #false))
-(check-expect (tick-player PLAYER1 (ceiling PLAYER-LARGE-THRESHOLD))
+(check-expect (tick-player PLAYER1
+                           (ceiling PLAYER-LARGE-THRESHOLD)
+                           #true)
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-LARGE
                                       PLAYER-COLOR)
                            PLAYER-LARGE
-                           #false))
+                           #true))
 
-(define (tick-player p s)
+(define (tick-player p s eaten?)
   (cond [(and (>= s PLAYER-LARGE-THRESHOLD)
               (< (player-size p) PLAYER-LARGE))
          (make-player (player-loc p)
                       (draw-fish PLAYER-LARGE
                                  PLAYER-COLOR)
                       PLAYER-LARGE
-                      (player-eaten? p))]
+                      eaten?)]
         [(and (>= s PLAYER-MED-THRESHOLD)
               (< (player-size p) PLAYER-MED))
          (make-player (player-loc p)
                       (draw-fish PLAYER-MED
                                  PLAYER-COLOR)
                       PLAYER-MED
-                      (player-eaten? p))]
+                      eaten?)]
         [else p]))
- 
+
 ;; Probability (in percent) that a given Enemy's velevt will be
 ;;  randomized in a given tick:
 (define ENEMY-CHANGE-CHANCE 5)
@@ -1171,19 +1178,22 @@
    ;           (make-fish-world (fish-world-player START)
              ;                  (moves-enemies (fish-world-enemies START))))
 
-
-
 (define (tick-handler fw)
-  (make-fish-world (tick-player (fish-world-player fw) (fish-world-score fw))
-                   (handle-eating (map tick-enemy (fish-world-enemies fw))
-                                  (fish-world-player fw))
-                   (fish-world-score fw)))
+  (local [(define new-loe (map tick-enemy (fish-world-enemies fw)))]
+    (make-fish-world (tick-player (fish-world-player fw)
+                                  (fish-world-score fw)
+                                  (handle-player-eating new-loe (fish-world-player fw)))
+                     (handle-enemy-eating
+                      new-loe
+                      (fish-world-player fw))
+                     (accumulate-score (fish-world-score fw)
+                                       (fish-world-player fw)
+                                       (fish-world-enemies fw)))))
 
-;;handle-eating : [ListOf Enemies] Player -> [ListOf Enemies]
+;;handle-enemy-eating : [ListOf Enemies] Player -> [ListOf Enemies]
 ;;Filters out the fish that the player collides with
-;;Doesn't accout for size yet
-;;TODO: Unit Tests, size handling
-(define (handle-eating aloe player)
+
+(define (handle-enemy-eating aloe player)
   (local [
           (define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))
           (define (filter-size aloe player)
@@ -1194,8 +1204,16 @@
         (filter (lambda (e) (not (member e (filter-size COLLIDED-FISH player)))) aloe)
       )))
 
-;(define-struct fish-world [player enemies])
+;; handle-player-eating : [ListOf Enemies] Player -> [ListOf Enemies]
+;; Consumes:
+;;  - [ListOf Enemy] aloe: the [ListOf Enemy] in the current FishWorld 
+;;  - Player            p: the current Player
+;;Produces: whether player has colided with an Enemy larger than it
 
+(define (handle-player-eating aloe player)
+  (local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))]
+    (ormap (λ (e) (> (enemy-size e) (player-size player))) 
+           COLLIDED-FISH)))
 
 ;;---------Scoring:-------
 
@@ -1203,9 +1221,6 @@
    (define SMALL-POINTS 1)
    (define MED-POINTS 2)
    (define LARGE-POINTS 3)
-
-
-;(define-struct enemy [loc pic size vel])
 
 (define SCORING-PLAYER1 (make-player (make-posn 25 25)
                                      (draw-fish PLAYER-SMALL
@@ -1253,8 +1268,6 @@
                      (list SCORING-ENEMY1 SCORING-ENEMY2 SCORING-ENEMY4)
                      0))
 
-
-#|
 ;; score-world: FishWord -> FishWorld
 ;; Consumes:
 ;; - FishWorld  fw: the existing FishWorld
@@ -1264,65 +1277,64 @@
 (check-expect (score-world SCORING-FW2)
               (make-fish-world
                (make-player (player-loc (fish-world-player SCORING-FW2))
-                (player-pic (fish-world-player SCORING-FW2))
-                (player-size (fish-world-player SCORING-FW2)))
+                            (player-pic (fish-world-player SCORING-FW2))
+                            (player-size (fish-world-player SCORING-FW2))
+                            #false)
                (fish-world-enemies SCORING-FW2)
                5))
 
-
 (define (score-world fw)
   (make-fish-world
-   (make-player (player-loc (fish-world-player fw))
-                (player-pic (fish-world-player fw))
-                (player-size (fish-world-player fw)))
+   (fish-world-player fw)
    (fish-world-enemies fw)
-   (accumulate-score (fish-world-player fw) (fish-world-enemies fw))))
-
+   (accumulate-score (fish-world-score fw)
+                     (fish-world-player fw)
+                     (fish-world-enemies fw))))
 
 ;; accumulate-score: Player [ListOf Enemies] -> PosInt
 ;; Consumes
 ;;  - Player             player: the existing Player
 ;;  - [ListOf Enemies]  enemies: an existing [ListOf Enemies]
 ;; Produces: a score for player based on any collisions with enemies
-
-(check-expect (accumulate-score (fish-world-player SCORING-FW1)
+(check-expect (accumulate-score 5 (fish-world-player SCORING-FW1)
                            (fish-world-enemies SCORING-FW1))
-                           0)
-(check-expect (accumulate-score (fish-world-player SCORING-FW2)
+              5)
+(check-expect (accumulate-score 0 (fish-world-player SCORING-FW1)
+                           (fish-world-enemies SCORING-FW1))
+              0)
+(check-expect (accumulate-score 0 (fish-world-player SCORING-FW2)
                            (fish-world-enemies SCORING-FW2))
-                           5)
-
-(define (accumulate-score player enemies)
-  (cond
-    [(empty? enemies) 0]
-    [(cons? enemies) 
-   (+ (add-points (player-score player) player (first enemies))
-      (accumulate-score player (rest enemies)))]))
+              5)
 
 
+(define (accumulate-score  score player enemies)
+(local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) enemies))]
+    (cond
+      [(empty? COLLIDED-FISH) score]
+      [(cons? COLLIDED-FISH) 
+       (+ (get-points player (first COLLIDED-FISH)) 
+          (accumulate-score score player (rest COLLIDED-FISH)))])))
 
 
-;; add-points: PosInt Player Enemy -> PosInt
+;; get-points: PosInt Player Enemy -> PosInt
 ;; Consumes:
 ;;  - PosInt   score: the existing score
 ;;  - Player  player: the existing Player
 ;;  - Enemy    Enemy: an existing Enemy
-;; Produces: a new score value depending on a possible collision
+;; Produces: a new score value 
+(check-expect (get-points SCORING-PLAYER1 SCORING-ENEMY1) 0)
+(check-expect (get-points SCORING-PLAYER2 SCORING-ENEMY1) 3)
+(check-expect (get-points SCORING-PLAYER2 SCORING-ENEMY2) 2)
+(check-expect (get-points SCORING-PLAYER2 SCORING-ENEMY3) 1)
+(check-expect (get-points SCORING-PLAYER1 SCORING-ENEMY4) 1)
 
-(check-expect (add-points 0 SCORING-PLAYER1 SCORING-ENEMY1) 0)
-(check-expect (add-points 2 SCORING-PLAYER2 SCORING-ENEMY1) 5)
-(check-expect (add-points 0 SCORING-PLAYER2 SCORING-ENEMY2) 2)
-(check-expect (add-points 0 SCORING-PLAYER2 SCORING-ENEMY3) 1)
-(check-expect (add-points 3 SCORING-PLAYER1 SCORING-ENEMY4) 3)
+(define (get-points player enemy) 
+  (cond
+    [(> (enemy-size enemy) (player-size player)) 0]
+    [(= (enemy-size enemy) ENEMY-SMALL) SMALL-POINTS]
+    [(= (enemy-size enemy) ENEMY-MED) MED-POINTS]
+    [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS]))
 
-(define (add-points score player enemy)
-  (if (collide? player enemy) (+ score
-      (cond
-        [(> (enemy-size enemy) (player-size player)) 0]
-        [(= (enemy-size enemy) ENEMY-SMALL) SMALL-POINTS]
-        [(= (enemy-size enemy) ENEMY-MED) MED-POINTS]
-        [(= (enemy-size enemy) ENEMY-LARGE) LARGE-POINTS])) score))
-|#
 
 ;;---------Doomstick:----------
 (define EATEN-PLAYER1 (make-player (player-loc PLAYER1)
