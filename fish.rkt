@@ -1062,10 +1062,11 @@
                      (fish-world-enemies START)))
      THRESHOLD-PROPORTION))
 (define PLAYER-LARGE-THRESHOLD
-  (* (+ PLAYER-MED-THRESHOLD
-        (* 2 (length (filter (λ (e) (= (enemy-size e) ENEMY-MED))
-                             (fish-world-enemies START)))))
-     THRESHOLD-PROPORTION))
+  (+ PLAYER-MED-THRESHOLD
+        (* (length (filter (λ (e) (= (enemy-size e) ENEMY-MED))
+                             (fish-world-enemies START)))
+           2
+           THRESHOLD-PROPORTION)))
 ;; tick-player: Player Int -> Player
 ;; Consumes:
 ;;  - Player p: the Player whose state is to be updated
