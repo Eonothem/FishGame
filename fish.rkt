@@ -20,72 +20,6 @@
 ;;  - "blue"
 ;;  - or any other String allowed in color-database<%>
 
-;; An X-Place is a String, one of;
-;;  - "left"
-;;  - "center"
-;;  - "right"
-
-;; An Y-Place is a String, one of;
-;;  - "top"
-;;  - "center"
-;;  - "bottom"
-
-;; A Place is either a X-place or a Y-Place
-
-;; posn-x-place: Posn -> X-Place
-;;  Consumes:
-;;   - Posn loc: a Posn representing a location on the screen
-;;  Produces: the X-Place corresponding to the quadrant wherein
-;;            loc is located, if any
-
-(check-expect (posn-x-place (player-loc PLAYER@BOT-LEFT))
-              "left")
-(check-expect (posn-x-place (player-loc PLAYER@CENT))
-              "center")
-(check-expect (posn-x-place (player-loc PLAYER@TOP-RIGHT))
-              "right")
-
-(define (posn-x-place loc)
-  (cond [(> (posn-x loc) 0) "left"]
-        [(= (posn-x loc) 0) "center"]
-        [(< (posn-x loc) 0) "right"]))
-
-;; posn-y-place: Posn -> Y-Place
-;;  Consumes:
-;;   - Posn loc: a Posn representing a location on the screen
-;;  Produces: the Y-Place corresponding to the quadrant wherein
-;;            loc is located, if any
-
-(check-expect (posn-y-place (player-loc PLAYER@BOT-LEFT))
-              "bottom")
-(check-expect (posn-y-place (player-loc PLAYER@CENT))
-              "center")
-(check-expect (posn-y-place (player-loc PLAYER@TOP-RIGHT))
-              "top")
-
-(define (posn-y-place loc)
-  (cond [(> (posn-y loc) 0) "top"]
-        [(= (posn-y loc) 0) "center"]
-        [(< (posn-y loc) 0) "bottom"]))
-
-;; opposite-place: Place -> Place
-;;  Consumes:
-;;   - Place aplace: the Place to be inverted
-;;  Produces: the Place opposite aplace
-
-(check-expect (opposite-place "top") "bottom")
-(check-expect (opposite-place "right") "left")
-(check-expect (opposite-place "center") "center")
-(check-expect (opposite-place "left") "right")
-(check-expect (opposite-place "bottom") "top")
-
-(define (opposite-place aplace)
-  (cond [(string=? "top" aplace) "bottom"]
-        [(string=? "right" aplace) "left"]
-        [(string=? "center" aplace) "center"]
-        [(string=? "left" aplace) "right"]
-        [(string=? "bottom" aplace) "top"]))
-
 ;; An ArrowKey is a EventKey, one of:
 ;;  - "right"
 ;;  - "up"
@@ -111,7 +45,7 @@
 ;; A PosInt is a positive integer
 ;; An Int is an integer
 
-;;----------Background Constants:
+;;----------Graphical Constants:
 (define BACKGROUND-WIDTH 750)
 (define BACKGROUND-HEIGHT 500)
 (define BACKGROUND-COLOR "blue")
@@ -120,11 +54,366 @@
                               "solid"
                               BACKGROUND-COLOR))
 
+;; draw-fish: PosInt Color -> Image
+;;  Consumes:
+;;   - PosInt size:  the height of the fish to be drawn
+;;   - Color  color: the color the fish is to be drawn in
+;;  Produces: an image depicting a fish
+(define FISH-HEIGHT/WIDTH 9/5)
+
+(check-expect (draw-fish PLAYER-SMALL
+                         PLAYER-COLOR)
+              (overlay/offset (ellipse (* PLAYER-SMALL FISH-HEIGHT/WIDTH)
+                                       PLAYER-SMALL
+                                       "solid"
+                                       PLAYER-COLOR)
+                              PLAYER-SMALL
+                              0
+                              (rotate 90
+                                      (triangle PLAYER-SMALL
+                                                "solid"
+                                                PLAYER-COLOR))))
+
+(define (draw-fish size color)
+  (overlay/offset (ellipse (* size FISH-HEIGHT/WIDTH)
+                           size
+                           "solid"
+                           color)
+                  size
+                  0
+                  (rotate 90
+                          (triangle size
+                                    "solid"
+                                    color))))
+
 ;;----------Screen Constants:
 (define SCREEN-MIN-X (/ BACKGROUND-WIDTH -2))
 (define SCREEN-MAX-X (/ BACKGROUND-WIDTH 2))
 (define SCREEN-MIN-Y (/ BACKGROUND-HEIGHT -2))
 (define SCREEN-MAX-Y (/ BACKGROUND-HEIGHT 2))
+
+;; An X-Place is a String, one of;
+;;  - "left"
+;;  - "center"
+;;  - "right"
+
+;; An Y-Place is a String, one of;
+;;  - "top"
+;;  - "center"
+;;  - "bottom"
+
+;; A Place is either a X-place or a Y-Place
+
+;; posn-x-place: Posn -> X-Place
+;;  Consumes:
+;;   - Posn loc: a Posn representing a location on the screen
+;;  Produces: the X-Place corresponding to the quadrant wherein
+;;            loc is located, if any
+
+(check-expect (posn-x-place (make-posn SCREEN-MAX-X
+                                       0))
+              "left")
+(check-expect (posn-x-place (make-posn 0
+                                       0))
+              "center")
+(check-expect (posn-x-place (make-posn SCREEN-MIN-X
+                                       0))
+              "right")
+
+(define (posn-x-place loc)
+  (cond [(> (posn-x loc) 0) "left"]
+        [(= (posn-x loc) 0) "center"]
+        [(< (posn-x loc) 0) "right"]))
+
+;; posn-y-place: Posn -> Y-Place
+;;  Consumes:
+;;   - Posn loc: a Posn representing a location on the screen
+;;  Produces: the Y-Place corresponding to the quadrant wherein
+;;            loc is located, if any
+
+(check-expect (posn-y-place (make-posn 0
+                                       SCREEN-MIN-Y))
+              "bottom")
+(check-expect (posn-y-place (make-posn 0
+                                       0))
+              "center")
+(check-expect (posn-y-place (make-posn 0
+                                       SCREEN-MAX-Y))
+              "top")
+
+(define (posn-y-place loc)
+  (cond [(> (posn-y loc) 0) "top"]
+        [(= (posn-y loc) 0) "center"]
+        [(< (posn-y loc) 0) "bottom"]))
+
+;; opposite-place: Place -> Place
+;;  Consumes:
+;;   - Place aplace: the Place to be inverted
+;;  Produces: the Place opposite aplace
+
+(check-expect (opposite-place "top") "bottom")
+(check-expect (opposite-place "right") "left")
+(check-expect (opposite-place "center") "center")
+(check-expect (opposite-place "left") "right")
+(check-expect (opposite-place "bottom") "top")
+
+(define (opposite-place aplace)
+  (cond [(string=? "top" aplace) "bottom"]
+        [(string=? "right" aplace) "left"]
+        [(string=? "center" aplace) "center"]
+        [(string=? "left" aplace) "right"]
+        [(string=? "bottom" aplace) "top"]))
+
+;;----------Player----------
+
+;; A PlayerSize is a PosInt, one of:
+     (define PLAYER-SMALL 16)
+     (define PLAYER-MED 26)
+     (define PLAYER-LARGE 36)
+
+(define-struct player [loc pic size eaten?])
+;; A Player is a (make-player loc pic size)
+;;  Interpertation:
+;;   - Posn        loc: the (x,y) position of the Player,
+;;                      in pixels, using the center of the screen as
+;;                      the origin and center of the Player as the point
+;;   - Image       pic: a graphic representation of the Player's fish
+;;   - PlayerSize size: the current size of the Player, in pixels tall
+;;   - Boolean  eaten?: whether or not the Player has been eaten
+
+(define PLAYER-MOVE 10)
+(define PLAYER-COLOR "green")
+
+;;Examples:
+(define PLAYER@TOP-LEFT (make-player (make-posn SCREEN-MAX-X
+                                                SCREEN-MAX-Y)
+                                     (draw-fish PLAYER-SMALL
+                                                PLAYER-COLOR)
+                                     PLAYER-SMALL
+                                     #false))
+(define PLAYER@TOP-CENT (make-player (make-posn 0
+                                                SCREEN-MAX-Y)
+                                     (draw-fish PLAYER-SMALL
+                                                PLAYER-COLOR)
+                                     PLAYER-SMALL
+                                     #false))
+(define PLAYER@TOP-RIGHT (make-player (make-posn SCREEN-MIN-X
+                                                 SCREEN-MAX-Y)
+                                      (draw-fish PLAYER-SMALL
+                                                 PLAYER-COLOR)
+                                      PLAYER-SMALL
+                                      #false))
+(define PLAYER@CENT-LEFT (make-player (make-posn SCREEN-MAX-X
+                                                 0)
+                                      (draw-fish PLAYER-SMALL
+                                                 PLAYER-COLOR)
+                                      PLAYER-SMALL
+                                      #false))
+(define PLAYER@CENT (make-player (make-posn 0
+                                            0)
+                                 (draw-fish PLAYER-SMALL
+                                            PLAYER-COLOR)
+                                 PLAYER-SMALL
+                                 #false))
+(define PLAYER@CENT-RIGHT (make-player (make-posn SCREEN-MIN-X
+                                                  0)
+                                       (draw-fish PLAYER-SMALL
+                                                  PLAYER-COLOR)
+                                       PLAYER-SMALL
+                                       #false))
+(define PLAYER@BOT-LEFT (make-player (make-posn SCREEN-MAX-X
+                                                SCREEN-MIN-Y)
+                                     (draw-fish PLAYER-SMALL
+                                                PLAYER-COLOR)
+                                     PLAYER-SMALL
+                                     #false))
+(define PLAYER@BOT-CENT (make-player (make-posn 0
+                                                SCREEN-MIN-Y)
+                                     (draw-fish PLAYER-SMALL
+                                                PLAYER-COLOR)
+                                     PLAYER-SMALL
+                                     #false))
+(define PLAYER@BOT-RIGHT (make-player (make-posn SCREEN-MIN-X
+                                                 SCREEN-MIN-Y)
+                                      (draw-fish PLAYER-SMALL
+                                                 PLAYER-COLOR)
+                                      PLAYER-SMALL
+                                      #false))
+
+;; Template:
+#; (define (player-fn p)
+     ... (posn-fn (player-loc p))
+     ... (player-pic p)
+     ... (player-size p)
+     ... (player-eaten? p))
+
+;;----------Enemy----------
+
+;; An EnemySize is a PosInt, one of the following:
+  (define ENEMY-SMALL 10)
+  (define ENEMY-MED 20)
+  (define ENEMY-LARGE 30)
+
+(define-struct velvect [vx vy])
+;; A VelVect is a structure (make-velvect vx vy)
+;; Interpretation:
+;; Number vx: the x velocity of the VelVect
+;; Number vy: the y velocity of the VelVect
+
+;; Example:
+(define FIVE (make-velvect 3 4))
+
+;; Template:
+#;
+(define (velvect-fun v)
+ ...(velvect-vx v)...
+ ...(velvect-vy v)...)
+
+(define-struct enemy [loc pic size vel])
+;; An Enemy is a structure (make-enemy loc pic size vel)
+;; Interpretation:
+;; EnemySize size: the size of the Enemy
+;; Posn       loc: the (x,y) position of the Enemy,
+;;                 in pixels, using the center of the screen as
+;;                 the origin and center of the enemy as the point
+;; VelVec     vel: the velocity vector of the fish
+;; Image      pic: an Image depicting the Enemy
+(define ENEMY-COLOR "red")
+
+;; Example:
+(define SHARK (make-enemy (make-posn 25 25)
+                          (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR)
+                          ENEMY-LARGE
+                          FIVE))
+;; Template:
+#;
+(define (enemy-fun e)
+  ...(enemy-loc e)...
+  ...(enemy-pic e)...
+  ...(enemy-size e)...
+  ...(enemy-vel e)...)
+
+(define SPEED-MAX 5)
+
+;;----------ListOfEnemies----------
+
+;; a List-of-Enemies [LOE] is either
+;; -- '()
+;; -- (cons Enemy LOE)
+
+;;Examples:
+(define E0 '())
+(define E1 (cons SHARK E0))
+
+;; TEMPLATE
+#;
+(define (loe-fun aloe)
+  (cond [(empty? aloe) ...]
+        [(cons? aloe)
+         ... (fn-for-enemy (first aloe))
+         ... (loe-fun (rest aloe))]))
+
+;;----------Collision----------
+
+;;collide?: Player Enemy -> Boolean
+;;Consumes
+;;Player p : The given Player
+;;Enemy e: The given Enemy
+;;Returns true if p collides with e using a rectangular bounding box
+;;Returns false if it does not
+;;TODO Unit Tests
+(define (collide? p e)
+  (local [
+          (define w1 (image-width (player-pic p)))
+          (define h1 (image-height (player-pic p)))
+          (define x1 (ceiling (- (posn-x (player-loc p))
+                                 (/ w1 2))))
+          (define y1 (ceiling (- (posn-y (player-loc p))
+                                 (/ h1 2))))
+          (define w2 (image-width (enemy-pic e)))
+          (define h2 (image-height (enemy-pic e)))
+          (define x2 (ceiling (- (posn-x (enemy-loc e))
+                                 (/ w2 2))))
+          (define y2 (ceiling (- (posn-y (enemy-loc e))
+                                 (/ h2 2))))]
+
+    (and (< x1 (+ x2 w2))
+         (> (+ x1 w1) x2)
+         (< y1 (+ y2 h2))
+         (> (+ y1 h1) y2))))
+
+(check-expect (collide?
+               (make-player (make-posn 61 37)
+                            (draw-fish PLAYER-SMALL
+                                       PLAYER-COLOR)
+                            16
+                            #false)
+               (make-enemy (make-posn 25 25)
+                           (draw-fish ENEMY-LARGE
+                                      ENEMY-COLOR)
+                           30
+                           (make-velvect 3 4)))
+              #true)
+(check-expect (collide?
+               (make-player (make-posn 9 0)
+                            (draw-fish PLAYER-SMALL
+                                       PLAYER-COLOR)
+                            16
+                            #false)
+               (make-enemy (make-posn 100 100)
+                           (draw-fish ENEMY-LARGE
+                                      ENEMY-COLOR)
+                           30
+                           (make-velvect 3 4)))
+              #false)
+
+;;----------Randomization----------
+
+;; Percentage chances that a randomly generated Enemy 
+;;  is of a given size:
+(define ENEMY-SMALL-CHANCE 60)
+(define ENEMY-MED-CHANCE 30)
+(define ENEMY-LARGE-CHANCE 10)
+(check-expect (+ ENEMY-SMALL-CHANCE
+                 ENEMY-MED-CHANCE
+                 ENEMY-LARGE-CHANCE)
+              100)
+
+;; create-random-enemy: NatNum -> Enemy
+;; Consumes:
+;;  - NatNum n: the seed for the Enemy
+;; Produces: an Enemy located within the bounds of the screen,
+;;           and which doesn'y collide with PLAYER1
+;;           with a velocity whose components are random real numbers
+;;           each in [-SPEED-MAX, SPEED-MAX], with a fixed probability
+;;           of being small, medium, or large in size and holding an
+;;           appropriate Image
+
+(check-random (create-random-enemy 0)
+              (local [(define rand (random 100))
+                      (define SIZE
+                        (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
+                              [(< rand (+ ENEMY-SMALL-CHANCE
+                                          ENEMY-MED-CHANCE)) ENEMY-MED]
+                              [else ENEMY-MED]))
+                      (define CREATED-ENEMY
+                        (make-enemy (random-pair SCREEN-MIN-X
+                                                 SCREEN-MAX-X
+                                                 SCREEN-MIN-Y
+                                                 SCREEN-MAX-Y
+                                                 make-posn)
+                                    (draw-fish SIZE
+                                               ENEMY-COLOR)
+                                    SIZE
+                                    (random-pair (* -1 SPEED-MAX)
+                                                 SPEED-MAX
+                                                 (* -1 SPEED-MAX)
+                                                 SPEED-MAX
+                                                 make-velvect)))]
+                (if (not (collide? PLAYER1 CREATED-ENEMY))
+                    CREATED-ENEMY
+                    (create-random-enemy 0))))
 
 ;; random-pair: Int Int Int Int (Number Number -> X) -> X
 ;;  Consumes:
@@ -158,39 +447,59 @@
                       min-y))
            min-y)))
 
+(define (create-random-enemy n)
+  (local [(define rand (random 100))
+          (define SIZE
+            (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
+                  [(< rand (+ ENEMY-SMALL-CHANCE
+                              ENEMY-MED-CHANCE)) ENEMY-MED]
+                  [else ENEMY-LARGE]))
+          (define CREATED-ENEMY
+            (make-enemy (random-pair SCREEN-MIN-X
+                             SCREEN-MAX-X
+                             SCREEN-MIN-Y
+                             SCREEN-MAX-Y
+                             make-posn)
+                (draw-fish SIZE
+                           ENEMY-COLOR)
+                SIZE
+                (random-pair (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             (* -1 SPEED-MAX)
+                             SPEED-MAX
+                             make-velvect)))]
+    (if (not (collide? PLAYER1 CREATED-ENEMY))
+        CREATED-ENEMY
+        (create-random-enemy n))))
+
+;;----------FishWorld----------
+(define-struct fish-world [player enemies score])
+;; An FishWorld is a (make-fish-world player enemies score)
+;;  Interrpertation:
+;;   - Player         player: the player
+;;   - ListOfEnemies enemies: the enemies currently in play
+;;   - Int             score: the player's current score
+
+(define PLAYER1 (make-player (random-pair SCREEN-MIN-X
+                                          SCREEN-MAX-X
+                                          SCREEN-MIN-Y
+                                          SCREEN-MAX-Y
+                                          make-posn)
+                             (draw-fish PLAYER-SMALL
+                                        PLAYER-COLOR)
+                             PLAYER-SMALL
+                             #false))
+;;Example:
+(define START (make-fish-world PLAYER1
+                               (build-list 15 create-random-enemy)
+                               0))
+
+;; Template:
+#; (define (fish-world-fn fw)
+     ... (player-fn (fish-world-player fw))
+     ... (loe-fn (fish-world-enemies fw)))
+
 ;----------Rendering----------
-
-;; draw-fish: PosInt Color -> Image
-;;  Consumes:
-;;   - PosInt size:  the height of the fish to be drawn
-;;   - Color  color: the color the fish is to be drawn in
-;;  Produces: an image depicting a fish
-(define FISH-HEIGHT/WIDTH 9/5)
-
-(check-expect (draw-fish PLAYER-SMALL
-                         PLAYER-COLOR)
-              (overlay/offset (ellipse (* PLAYER-SMALL FISH-HEIGHT/WIDTH)
-                                       PLAYER-SMALL
-                                       "solid"
-                                       PLAYER-COLOR)
-                              PLAYER-SMALL
-                              0
-                              (rotate 90
-                                      (triangle PLAYER-SMALL
-                                                "solid"
-                                                PLAYER-COLOR))))
-
-(define (draw-fish size color)
-  (overlay/offset (ellipse (* size FISH-HEIGHT/WIDTH)
-                           size
-                           "solid"
-                           color)
-                  size
-                  0
-                  (rotate 90
-                          (triangle size
-                                    "solid"
-                                    color))))                         
 
 ;; rotate-player: ArrowKey Player -> Image
 ;;  Consunes:
@@ -271,9 +580,11 @@
                 (make-rendering score-pic
                                 (make-posn
                                  (+ SCREEN-MIN-X
-                                    (ceiling (/ (image-width score-pic) 2)))
+                                    (ceiling (/ (image-width score-pic)
+                                                2)))
                                  (- SCREEN-MAX-Y
-                                    (ceiling (/ (image-height score-pic) 2)))))))
+                                    (ceiling (/ (image-height score-pic)
+                                                2)))))))
 
 (define (score->rendering score)
   (local [(define score-pic
@@ -590,235 +901,6 @@
                               SCREEN-MIN-Y
                               SCREEN-MAX-Y)))
 
-;;----------Player----------
-
-;; A PlayerSize is a PosInt, one of:
-     (define PLAYER-SMALL 16)
-     (define PLAYER-MED 26)
-     (define PLAYER-LARGE 36)
-
-(define-struct player [loc pic size eaten?])
-;; A Player is a (make-player loc pic size)
-;;  Interpertation:
-;;   - Posn        loc: the (x,y) position of the Player,
-;;                      in pixels, using the center of the screen as
-;;                      the origin and center of the Player as the point
-;;   - Image       pic: a graphic representation of the Player's fish
-;;   - PlayerSize size: the current size of the Player, in pixels tall
-;;   - Boolean  eaten?: whether or not the Player has been eaten
-
-(define PLAYER-MOVE 10)
-(define PLAYER-COLOR "green")
-
-;;Examples:
-(define PLAYER1 (make-player (random-pair SCREEN-MIN-X
-                                          SCREEN-MAX-X
-                                          SCREEN-MIN-Y
-                                          SCREEN-MAX-Y
-                                          make-posn)
-                             (draw-fish PLAYER-SMALL
-                                        PLAYER-COLOR)
-                             PLAYER-SMALL
-                             #false))
-(define PLAYER@TOP-LEFT (make-player (make-posn SCREEN-MAX-X
-                                                SCREEN-MAX-Y)
-                                     (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     #false))
-(define PLAYER@TOP-CENT (make-player (make-posn 0
-                                                SCREEN-MAX-Y)
-                                     (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     #false))
-(define PLAYER@TOP-RIGHT (make-player (make-posn SCREEN-MIN-X
-                                                 SCREEN-MAX-Y)
-                                      (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      #false))
-(define PLAYER@CENT-LEFT (make-player (make-posn SCREEN-MAX-X
-                                                 0)
-                                      (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      #false))
-(define PLAYER@CENT (make-player (make-posn 0
-                                            0)
-                                 (player-pic PLAYER1)
-                                 (player-size PLAYER1)
-                                 #false))
-(define PLAYER@CENT-RIGHT (make-player (make-posn SCREEN-MIN-X
-                                                  0)
-                                       (player-pic PLAYER1)
-                                       (player-size PLAYER1)
-                                       #false))
-(define PLAYER@BOT-LEFT (make-player (make-posn SCREEN-MAX-X
-                                                SCREEN-MIN-Y)
-                                     (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     #false))
-(define PLAYER@BOT-CENT (make-player (make-posn 0
-                                                SCREEN-MIN-Y)
-                                     (player-pic PLAYER1)
-                                     (player-size PLAYER1)
-                                     #false))
-(define PLAYER@BOT-RIGHT (make-player (make-posn SCREEN-MIN-X
-                                                 SCREEN-MIN-Y)
-                                      (player-pic PLAYER1)
-                                      (player-size PLAYER1)
-                                      #false))
-
-;; Template:
-#; (define (player-fn p)
-     ... (posn-fn (player-loc p))
-     ... (player-pic p)
-     ... (player-size p)
-     ... (player-eaten? p))
-
-;;----------Enemy----------
-
-;; An EnemySize is a PosInt, one of the following:
-  (define ENEMY-SMALL 10)
-  (define ENEMY-MED 20)
-  (define ENEMY-LARGE 30)
-
-(define-struct velvect [vx vy])
-;; A VelVect is a structure (make-velvect vx vy)
-;; Interpretation:
-;; Number vx: the x velocity of the VelVect
-;; Number vy: the y velocity of the VelVect
-
-;; Example:
-(define FIVE (make-velvect 3 4))
-
-;; Template:
-#;
-(define (velvect-fun v)
- ...(velvect-vx v)...
- ...(velvect-vy v)...)
-
-(define-struct enemy [loc pic size vel])
-;; An Enemy is a structure (make-enemy loc pic size vel)
-;; Interpretation:
-;; EnemySize size: the size of the Enemy
-;; Posn       loc: the (x,y) position of the Enemy,
-;;                 in pixels, using the center of the screen as
-;;                 the origin and center of the enemy as the point
-;; VelVec     vel: the velocity vector of the fish
-;; Image      pic: an Image depicting the Enemy
-(define ENEMY-COLOR "red")
-
-;; Example:
-(define SHARK (make-enemy (make-posn 25 25)
-                          (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR)
-                          ENEMY-LARGE
-                          FIVE))
-;; Template:
-#;
-(define (enemy-fun e)
-  ...(enemy-loc e)...
-  ...(enemy-pic e)...
-  ...(enemy-size e)...
-  ...(enemy-vel e)...)
-
-(define SPEED-MAX 5)
-
-;; Percentage chances that a randomly generated Enemy 
-;;  is of a given size:
-(define ENEMY-SMALL-CHANCE 60)
-(define ENEMY-MED-CHANCE 30)
-(define ENEMY-LARGE-CHANCE 10)
-(check-expect (+ ENEMY-SMALL-CHANCE
-                 ENEMY-MED-CHANCE
-                 ENEMY-LARGE-CHANCE)
-              100)
-
-;; create-random-enemy: NatNum -> Enemy
-;; Consumes:
-;;  - NatNum n: the seed for the Enemy
-;; Produces: an Enemy located within the bounds of the screen,
-;;           with a velocity whose components are random real numbers
-;;           each in [-SPEED-MAX, SPEED-MAX], with a fixed probability
-;;           of being small, medium, or large in size and holding an
-;;           appropriate Image
-
-(check-random (create-random-enemy 0)
-              (local [(define rand (random 100))
-          (define SIZE
-            (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
-                  [(< rand (+ ENEMY-SMALL-CHANCE
-                              ENEMY-MED-CHANCE)) ENEMY-MED]
-                  [else ENEMY-MED]))]
-    (make-enemy (random-pair SCREEN-MIN-X
-                             SCREEN-MAX-X
-                             SCREEN-MIN-Y
-                             SCREEN-MAX-Y
-                             make-posn)
-                (draw-fish SIZE
-                           ENEMY-COLOR)
-                SIZE
-                (random-pair (* -1 SPEED-MAX)
-                             SPEED-MAX
-                             (* -1 SPEED-MAX)
-                             SPEED-MAX
-                             make-velvect))))
-
-(define (create-random-enemy n)
-  (local [(define rand (random 100))
-          (define SIZE
-            (cond [(< rand ENEMY-SMALL-CHANCE) ENEMY-SMALL]
-                  [(< rand (+ ENEMY-SMALL-CHANCE
-                              ENEMY-MED-CHANCE)) ENEMY-MED]
-                  [else ENEMY-LARGE]))]
-    (make-enemy (random-pair SCREEN-MIN-X
-                             SCREEN-MAX-X
-                             SCREEN-MIN-Y
-                             SCREEN-MAX-Y
-                             make-posn)
-                (draw-fish SIZE
-                           ENEMY-COLOR)
-                SIZE
-                (random-pair (* -1 SPEED-MAX)
-                             SPEED-MAX
-                             (* -1 SPEED-MAX)
-                             SPEED-MAX
-                             make-velvect))))
-
-;;----------ListOfEnemies----------
-
-;; a List-of-Enemies [LOE] is either
-;; -- '()
-;; -- (cons Enemy LOE)
-
-;;Examples:
-(define E0 '())
-(define E1 (cons SHARK E0))
-
-;; TEMPLATE
-#;
-(define (loe-fun aloe)
-  (cond [(empty? aloe) ...]
-        [(cons? aloe)
-         ... (fn-for-enemy (first aloe))
-         ... (loe-fun (rest aloe))]))
-
-;;----------FishWorld----------
-(define-struct fish-world [player enemies score])
-;; An FishWorld is a (make-fish-world player enemies score)
-;;  Interrpertation:
-;;   - Player         player: the player
-;;   - ListOfEnemies enemies: the enemies currently in play
-;;   - Int             score: the player's current score
-
-;;Example:
-(define START (make-fish-world PLAYER1
-                               (build-list 15 create-random-enemy)
-                               0))
-
-;; Template:
-#; (define (fish-world-fn fw)
-     ... (player-fn (fish-world-player fw))
-     ... (loe-fn (fish-world-enemies fw)))
-
 ;;----------Kinetics:
 
 ;; re-apear: Player -> Player
@@ -877,58 +959,6 @@
                    (player-size p)
                    (player-eaten? p))
       p))
-
-;;collide?: Player Enemy -> Boolean
-;;Consumes
-;;Player p : The given Player
-;;Enemy e: The given Enemy
-;;Returns true if p collides with e using a rectangular bounding box
-;;Returns false if it does not
-;;TODO Unit Tests
-(define (collide? p e)
-  (local [
-          (define w1 (image-width (player-pic p)))
-          (define h1 (image-height (player-pic p)))
-          (define x1 (ceiling (- (posn-x (player-loc p))
-                                 (/ w1 2))))
-          (define y1 (ceiling (- (posn-y (player-loc p))
-                                 (/ h1 2))))
-          (define w2 (image-width (enemy-pic e)))
-          (define h2 (image-height (enemy-pic e)))
-          (define x2 (ceiling (- (posn-x (enemy-loc e))
-                                 (/ w2 2))))
-          (define y2 (ceiling (- (posn-y (enemy-loc e))
-                                 (/ h2 2))))]
-
-    (and (< x1 (+ x2 w2))
-         (> (+ x1 w1) x2)
-         (< y1 (+ y2 h2))
-         (> (+ y1 h1) y2))))
-
-(check-expect (collide?
-               (make-player (make-posn 61 37)
-                            (draw-fish PLAYER-SMALL
-                                       PLAYER-COLOR)
-                            16
-                            #false)
-               (make-enemy (make-posn 25 25)
-                           (draw-fish ENEMY-LARGE
-                                      ENEMY-COLOR)
-                           30
-                           (make-velvect 3 4)))
-              #true)
-(check-expect (collide?
-               (make-player (make-posn 9 0)
-                            (draw-fish PLAYER-SMALL
-                                       PLAYER-COLOR)
-                            16
-                            #false)
-               (make-enemy (make-posn 100 100)
-                           (draw-fish ENEMY-LARGE
-                                      ENEMY-COLOR)
-                           30
-                           (make-velvect 3 4)))
-              #false)
 
 ;; move-player: KeyEvent Player-> Posn
 ;; Consumes:
@@ -1053,6 +1083,12 @@
                            (make-velvect 0 0)))
 (define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
 
+(define ENEMY@CENT (make-enemy (make-posn 0 0)
+                           (draw-fish ENEMY-LARGE
+                                     ENEMY-COLOR)
+                           ENEMY-LARGE
+                           (make-velvect 3 4)))
+
 ;; The proportion of edible Enemies which a Player needs to consume
 ;;  in order to advance to the next size:
 (define THRESHOLD-PROPORTION 2/3)
@@ -1116,7 +1152,7 @@
                       (player-size p)
                       eaten?)]))
 
-;; Probability (in percent) that a given Enemy's velevt will be
+;; Probability (in percent) that a given Enemy's velvect will be
 ;;  randomized in a given tick:
 (define ENEMY-CHANGE-CHANCE 5)
 ;; tick-enemy: Enemy -> Enemy
@@ -1171,42 +1207,96 @@
                 (enemy-size e)
                 (vel-changer (enemy-vel e)))))
 
-;; tick-handler: FishWorld PosNum -> FishWorld
+;; tick-handler: FishWorld -> FishWorld
 ;; Consumes:
 ;;  - FishWorld fw: the curent FishWorld
-;;  - PosNum    tick: the inputed tick
-;; Produces a new FishWorld based on the tick
+;; Produces a new FishWorld by ticking the player and all enemies
+;;  with player-tick and enemy-tick, respectively
 
-
-;;(check-expect (tick-handler START)
-   ;           (make-fish-world (fish-world-player START)
-             ;                  (moves-enemies (fish-world-enemies START))))
+(check-random (fish-world-player (tick-handler START))
+               (tick-player
+                (fish-world-player START)
+                (fish-world-score START)
+                (handle-player-eating
+                 (map tick-enemy (fish-world-enemies START))
+                 (fish-world-player START))))
+(check-random (fish-world-enemies (tick-handler START))
+              (handle-enemy-eating
+                     (map tick-enemy (fish-world-enemies START))
+                     (fish-world-player START)))
+(check-random (fish-world-score (tick-handler START))
+              (accumulate-score (fish-world-score START)
+                                      (fish-world-player START)
+                                      (map tick-enemy
+                                           (fish-world-enemies START))))
 
 (define (tick-handler fw)
-  (local [(define new-loe (map tick-enemy (fish-world-enemies fw)))]
-    (make-fish-world (tick-player (fish-world-player fw)
-                                  (fish-world-score fw)
-                                  (handle-player-eating new-loe (fish-world-player fw)))
-                     (handle-enemy-eating
-                      new-loe
-                      (fish-world-player fw))
-                     (accumulate-score (fish-world-score fw)
-                                       (fish-world-player fw)
-                                       new-loe))))
+  (local [(define NEW-LOE (map tick-enemy (fish-world-enemies fw)))]
+    (make-fish-world
+     (tick-player (fish-world-player fw)
+                  (fish-world-score fw)
+                  (handle-player-eating NEW-LOE (fish-world-player fw)))
+     (handle-enemy-eating
+      NEW-LOE
+      (fish-world-player fw))
+     (accumulate-score (fish-world-score fw)
+                       (fish-world-player fw)
+                       NEW-LOE))))
 
-;;handle-enemy-eating : [ListOf Enemies] Player -> [ListOf Enemies]
-;;Filters out the fish that the player collides with
+;;handle-enemy-eating : [ListOf Enemy] Player -> [ListOf Enemy]
+;; Consumes:
+;;  - [ListOf Enemy] aloe: contains all Enemies that might have
+;;                         collided with player
+;;  - Player       player: the Player that the Enemies in aloe
+;;                         may have collied with
+;; Produces: a [ListOf Enemy] containing all Enemies in aloe which
+;;           player doesn't eat
+(check-expect (handle-enemy-eating (list ENEMY@CENT)
+                                   PLAYER@CENT)
+              (local [
+                      (define COLLIDED-FISH
+                        (filter (lambda (e) (collide? PLAYER@CENT e))
+                                (list ENEMY@CENT)))
+                      (define (filter-size aloe p)
+                        (filter (lambda (e) (< (enemy-size e) (player-size p)))
+                                aloe))
+                      ]
+                (if (empty? COLLIDED-FISH)
+                    (fish-world-enemies START)
+                    (filter
+                     (lambda (e) (not (member e (filter-size COLLIDED-FISH
+                                                             PLAYER@CENT))))
+                     (list ENEMY@CENT))
+                    )))
+(check-expect (handle-enemy-eating (list ENEMY1)
+                                   PLAYER@CENT)
+              (local [
+                      (define COLLIDED-FISH
+                        (filter (lambda (e) (collide? PLAYER@CENT e))
+                                (list ENEMY1)))
+                      (define (filter-size aloe p)
+                        (filter (lambda (e) (< (enemy-size e)
+                                               (player-size p)))
+                                aloe))
+                      ]
+                (if (empty? COLLIDED-FISH)
+                    (list ENEMY1)
+                    (filter
+                     (lambda (e)
+                       (not (member e
+                                    (filter-size COLLIDED-FISH PLAYER@CENT))))
+                     (list ENEMY1))
+                    )))
 
 (define (handle-enemy-eating aloe player)
   (local [
           (define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))
-          (define (filter-size aloe player)
-               (filter (lambda (e) (< (enemy-size e) (player-size player))) aloe))
+          (define (filter-size aloe p)
+               (filter (lambda (e) (< (enemy-size e) (player-size p))) aloe))
           ]
-    (if (empty? COLLIDED-FISH)
-        aloe
-        (filter (lambda (e) (not (member e (filter-size COLLIDED-FISH player)))) aloe)
-      )))
+    (filter (λ (e) (not (and (collide? player e)
+                             (< (enemy-size e) (player-size player)))))
+            aloe)))
 
 ;; handle-player-eating : [ListOf Enemies] Player -> Boolean
 ;; Consumes:
@@ -1215,7 +1305,8 @@
 ;;Produces: whether player has colided with an Enemy larger than it
 
 (define (handle-player-eating aloe player)
-  (local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) aloe))]
+  (local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e))
+                                        aloe))]
     (ormap (λ (e) (> (enemy-size e) (player-size player))) 
            COLLIDED-FISH)))
 
@@ -1312,7 +1403,8 @@
 
 
 (define (accumulate-score  score player enemies)
-(local [(define COLLIDED-FISH (filter (lambda (e) (collide? player e)) enemies))]
+(local [(define COLLIDED-FISH (filter (lambda (e)
+                                        (collide? player e)) enemies))]
     (cond
       [(empty? COLLIDED-FISH) score]
       [(cons? COLLIDED-FISH) 
