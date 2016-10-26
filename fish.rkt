@@ -400,17 +400,6 @@
 ;;  Produces: a Posn with x as an Int within [min-x, max-x]
 ;;   and y as an Int within [min-y, max-y]
 
-(check-random (random-pair SCREEN-MIN-X
-                           SCREEN-MAX-X
-                           SCREEN-MIN-Y
-                           SCREEN-MAX-Y
-                           make-posn)
-              (make-posn (+ (random (- SCREEN-MAX-X
-                                       SCREEN-MIN-X))
-                            SCREEN-MIN-X)
-                         (+ (random (- SCREEN-MAX-Y
-                                       SCREEN-MIN-Y))
-                            SCREEN-MIN-Y)))
 (check-satisfied (random-pair SCREEN-MIN-X
                               SCREEN-MAX-X
                               SCREEN-MIN-Y
@@ -1163,30 +1152,24 @@
 ;;  so thatits components are equally likely to be any Int
 ;;  within [-SPEED-MAX, SPEED-MAX]
 
-(check-random (tick-enemy ENEMY1)
-              (make-enemy (make-posn 28 29)
-                          (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR)
-                          ENEMY-LARGE
-                          (if (< (random 100) ENEMY-CHANGE-CHANCE)
-                              (random-pair (* -1 SPEED-MAX)
-                                           SPEED-MAX
-                                           (* -1 SPEED-MAX)
-                                           SPEED-MAX
-                                           make-velocity)
-                              (enemy-vel ENEMY1))))
-(check-random (tick-enemy ENEMY2)
-              (make-enemy (make-posn 5 4)
-                          (draw-fish ENEMY-SMALL
-                                     ENEMY-COLOR)
-                          ENEMY-SMALL
-                          (if (< (random 100) ENEMY-CHANGE-CHANCE)
-                              (random-pair (* -1 SPEED-MAX)
-                                           SPEED-MAX
-                                           (* -1 SPEED-MAX)
-                                           SPEED-MAX
-                                           make-velocity)
-                              (enemy-vel ENEMY2))))
+(check-expect (enemy-loc (tick-enemy ENEMY1))
+              (wrap-posn-to-screen
+               (make-posn
+                (+ (posn-x (enemy-loc e)) (velocity-x (enemy-vel e)))
+                (+ (posn-y (enemy-loc e)) (velocity-y (enemy-vel e))))))
+(check-expect (enemy-pic (tick-enemy ENEMY1))
+              (draw-fish (enemy-size ENEMY1
+                         ENEMY-COLOR)))
+(check-expect (enemy-size (tick-enemy ENEMY1))
+              (enemy-size ENEMY1))
+(check-random (enemy-vel (tick-enemy ENEMY1))
+              (if (< (random 100) ENEMY-CHANGE-CHANCE)
+                  (random-pair (* -1 SPEED-MAX)
+                               SPEED-MAX
+                               (* -1 SPEED-MAX)
+                               SPEED-MAX
+                               make-velocity)
+                  (enemy-vel ENEMY1)))
 
 (define (tick-enemy e)
   (local [(define (posn-changer loc vel)
