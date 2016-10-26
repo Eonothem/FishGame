@@ -26,6 +26,13 @@
 ;;  - "left"
 ;;  - "down"
 
+;; Template:
+#; (define (arrow-key-fn ak)
+     (cond [(key=? "right" ak) ...]
+           [(key=? "up"    ak) ...]
+           [(key=? "left"  ak) ...]
+           [(key=? "down"  ak) ...]))
+
 ;; arrow-key?: Any -> Boolean
 ;;  Consumes:
 ;;  - Any val: any value
@@ -45,6 +52,15 @@
 ;; A PosInt is a positive integer
 ;; An Int is an integer
 
+;; A [ListOf X] is one of:
+;;  - '()
+;;  - (cons X [ListOf X])
+
+;;Template:
+#; (define (list-fn l)
+     (cond [(empty? l) ...]
+           [(cons? l) ...]))
+
 ;;----------Graphical Constants:
 (define BACKGROUND-WIDTH 750)
 (define BACKGROUND-HEIGHT 500)
@@ -54,12 +70,14 @@
                               "solid"
                               BACKGROUND-COLOR))
 
+;;The ratio between the height and width of a fish's body (the ellipse)
+(define FISH-HEIGHT/WIDTH 9/5)
+
 ;; draw-fish: PosInt Color -> Image
 ;;  Consumes:
 ;;   - PosInt size:  the height of the fish to be drawn
 ;;   - Color  color: the color the fish is to be drawn in
 ;;  Produces: an image depicting a fish
-(define FISH-HEIGHT/WIDTH 9/5)
 
 (check-expect (draw-fish PLAYER-SMALL
                          PLAYER-COLOR)
@@ -295,24 +313,6 @@
   ...(enemy-vel e)...)
 
 (define SPEED-MAX 5)
-
-;;----------ListOfEnemies----------
-
-;; a List-of-Enemies [LOE] is either
-;; -- '()
-;; -- (cons Enemy LOE)
-
-;;Examples:
-(define E0 '())
-(define E1 (cons SHARK E0))
-
-;; TEMPLATE
-#;
-(define (loe-fun aloe)
-  (cond [(empty? aloe) ...]
-        [(cons? aloe)
-         ... (fn-for-enemy (first aloe))
-         ... (loe-fun (rest aloe))]))
 
 ;;----------Collision----------
 
