@@ -65,7 +65,7 @@
 ;;----------Graphical Constants:
 (define BACKGROUND-WIDTH 750)
 (define BACKGROUND-HEIGHT 500)
-(define BACKGROUND-COLOR "blue")
+(define BACKGROUND-COLOR "mediumblue")
 (define BACKGROUND (rectangle BACKGROUND-WIDTH
                               BACKGROUND-HEIGHT
                               "solid"
@@ -221,8 +221,8 @@
 ;;   - PlayerSize size: the current size of the Player, in pixels tall
 ;;   - Boolean  eaten?: whether or not the Player has been eaten
 
-(define PLAYER-MOVE 10)
-(define PLAYER-COLOR "green")
+(define STEP-SIZE 10)
+(define PLAYER-COLOR "springgreen")
 
 ;;Examples:
 (define PLAYER@TOP-LEFT (make-player (make-posn SCREEN-MAX-X
@@ -294,6 +294,24 @@
 (define ENEMY-MED 20)
 (define ENEMY-LARGE 30)
 
+(define ENEMY-SMALL-COLOR "red")
+(define ENEMY-MED-COLOR "darkorange")
+(define ENEMY-LARGE-COLOR "yellow")
+
+;; enemy-size->color: EnemySize -> Color
+;; Consumes:
+;;  - EnemySize es: the EnemySize to be converted to a color
+;; Produces: the color which corresponds to the given EnemySize
+
+(check-expect (enemy-size->color ENEMY-SMALL) ENEMY-SMALL-COLOR)
+(check-expect (enemy-size->color ENEMY-MED) ENEMY-MED-COLOR)
+(check-expect (enemy-size->color ENEMY-LARGE) ENEMY-LARGE-COLOR)
+
+(define (enemy-size->color es)
+  (cond [(= ENEMY-SMALL es) ENEMY-SMALL-COLOR]
+        [(= ENEMY-MED es) ENEMY-MED-COLOR]
+        [(= ENEMY-LARGE es) ENEMY-LARGE-COLOR]))
+
 (define-struct velocity [x y])
 ;; A velocity is a structure (make-velocity x y)
 ;; Interpretation:
@@ -318,34 +336,33 @@
 ;;                 the origin and center of the enemy as the point
 ;; VelVec     vel: the velocity vector of the fish
 ;; Image      pic: an Image depicting the Enemy
-(define ENEMY-COLOR "red")
 
 ;; Examples:
 (define SHARK (make-enemy (make-posn 25 25)
                           (draw-fish ENEMY-LARGE
-                                     ENEMY-COLOR)
+                                     ENEMY-LARGE-COLOR)
                           ENEMY-LARGE
                           FIVE))
 (define ENEMY1 (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
-                                      ENEMY-COLOR)
+                                      ENEMY-LARGE-COLOR)
                            ENEMY-LARGE
                            (make-velocity 3 4)))
 (define ENEMY2 (make-enemy (make-posn 3 2)
                            (draw-fish ENEMY-SMALL
-                                      ENEMY-COLOR)
+                                      ENEMY-SMALL-COLOR)
                            ENEMY-SMALL
                            (make-velocity 2 2)))
 (define ENEMY3 (make-enemy (make-posn 0 10)
                            (draw-fish ENEMY-SMALL
-                                      ENEMY-COLOR)
+                                      ENEMY-SMALL-COLOR)
                            ENEMY-SMALL
                            (make-velocity 0 0)))
 (define LOE1 (list ENEMY1 ENEMY2 ENEMY3))
 
 (define ENEMY@CENT (make-enemy (make-posn 0 0)
                                (draw-fish ENEMY-LARGE
-                                          ENEMY-COLOR)
+                                          ENEMY-LARGE-COLOR)
                                ENEMY-LARGE
                                (make-velocity 3 4)))
 
@@ -357,7 +374,7 @@
   ...(enemy-size an-enemy)...
   ...(enemy-vel an-enemy)...)
 
-(define SPEED-MAX 5)
+(define SPEED-BOUND 5)
 
 ;;----------Collision----------
 
@@ -376,7 +393,7 @@
                             #false)
                (make-enemy (make-posn 25 25)
                            (draw-fish ENEMY-LARGE
-                                      ENEMY-COLOR)
+                                      ENEMY-LARGE-COLOR)
                            30
                            (make-velocity 3 4)))
               #true)
@@ -388,7 +405,7 @@
                             #false)
                (make-enemy (make-posn 100 100)
                            (draw-fish ENEMY-LARGE
-                                      ENEMY-COLOR)
+                                      ENEMY-LARGE-COLOR)
                            30
                            (make-velocity 3 4)))
               #false)
@@ -467,30 +484,30 @@
 ;; Consumes:
 ;;  - Velocity   vel: the vel field of the Enemy whose pic is to be rotated
 ;;  - EnemySize size: the size field of the Enemy whose pic is to be rotated
-;; Produces: an Image of a fish of color ENEMY-COLOR and size size, rotated
-;;           so that it faces in the direction of vel
+;; Produces: an Image of a fish of a color corresponding to size and size size, 
+;;           rotated so that it faces in the direction of vel
 
 (check-expect (draw-rotated-enemy-pic (enemy-vel ENEMY3)
                                       (enemy-size ENEMY3))
               (draw-fish (enemy-size ENEMY3)
-                         ENEMY-COLOR))
+                         (enemy-size->color (enemy-size ENEMY3))))
 (check-expect (draw-rotated-enemy-pic (enemy-vel ENEMY2)
                                       (enemy-size ENEMY2))
               (rotate (floor (radians->degrees
                                  (atan (* -1 (velocity-y (enemy-vel ENEMY2)))
                                        (velocity-x (enemy-vel ENEMY2)))))
                       (draw-fish (enemy-size ENEMY2)
-                                 ENEMY-COLOR)))
+                                 (enemy-size->color (enemy-size ENEMY2)))))
 
 (define (draw-rotated-enemy-pic vel size)
    (if (and (= (velocity-y vel) 0)
             (= (velocity-x vel) 0))
        (draw-fish size
-                  ENEMY-COLOR)
+                  (enemy-size->color size))
        (rotate (floor (radians->degrees (atan (* -1 (velocity-y vel))
                                               (velocity-x vel))))
                (draw-fish size
-                          ENEMY-COLOR))))
+                          (enemy-size->color size)))))
 
 ;----------Rendering----------
 
@@ -844,7 +861,7 @@
 ;; Produces: an Enemy located within the bounds of the screen,
 ;;           and which doesn'y collide with PLAYER1
 ;;           with a velocity whose components are random real numbers
-;;           each in [-SPEED-MAX, SPEED-MAX], with a fixed probability
+;;           each in [-SPEED-BOUND, SPEED-BOUND], with a fixed probability
 ;;           of being small, medium, or large in size and holding an
 ;;           appropriate Image
 
@@ -862,8 +879,8 @@
                                (= size ENEMY-LARGE))))
 (check-satisfied (enemy-vel (create-random-enemy 0))
                  (λ (vel)
-                   (and (<= (* -1 SPEED-MAX) (velocity-x vel) SPEED-MAX)
-                        (<= (* -1 SPEED-MAX) (velocity-y vel) SPEED-MAX))))
+                   (and (<= (* -1 SPEED-BOUND) (velocity-x vel) SPEED-BOUND)
+                        (<= (* -1 SPEED-BOUND) (velocity-y vel) SPEED-BOUND))))
 
 (define (create-random-enemy n)
   (local [(define rand (random 100))
@@ -872,10 +889,10 @@
                   [(< rand (+ ENEMY-SMALL-CHANCE
                               ENEMY-MED-CHANCE)) ENEMY-MED]
                   [else ENEMY-LARGE]))
-          (define VEL (random-pair (* -1 SPEED-MAX)
-                                     SPEED-MAX
-                                     (* -1 SPEED-MAX)
-                                     SPEED-MAX
+          (define VEL (random-pair (* -1 SPEED-BOUND)
+                                     SPEED-BOUND
+                                     (* -1 SPEED-BOUND)
+                                     SPEED-BOUND
                                      make-velocity))
           (define CREATED-ENEMY
             (make-enemy (random-pair SCREEN-MIN-X
@@ -965,34 +982,34 @@
                                         PLAYER-SMALL
                                         #false)
                            "down")
-              (make-posn 50 (- 50 PLAYER-MOVE)))
+              (make-posn 50 (- 50 STEP-SIZE)))
 (check-expect (move-player (make-player (make-posn 50 50)
                                         (draw-fish PLAYER-SMALL "blue")
                                         PLAYER-SMALL
                                         #false)
                            "up")
-              (make-posn 50 (+ 50 PLAYER-MOVE)))
+              (make-posn 50 (+ 50 STEP-SIZE)))
 (check-expect (move-player (make-player (make-posn 50 50)
                                         (draw-fish PLAYER-SMALL "blue")
                                         PLAYER-SMALL
                                         #false)
                            "right")
-              (make-posn (- 50 PLAYER-MOVE) 50))
+              (make-posn (- 50 STEP-SIZE) 50))
 (check-expect (move-player (make-player (make-posn 50 50)
                                         (draw-fish PLAYER-SMALL "blue")
                                         PLAYER-SMALL
                                         #false)
                            "left")
-              (make-posn (+ 50 PLAYER-MOVE) 50))
+              (make-posn (+ 50 STEP-SIZE) 50))
 
 (define (move-player a-player key)
   (make-posn (+ (posn-x (player-loc a-player))
-                (cond [(key=? key "right") (- 0 PLAYER-MOVE)]
-                      [(key=? key "left") PLAYER-MOVE]
+                (cond [(key=? key "right") (- 0 STEP-SIZE)]
+                      [(key=? key "left") STEP-SIZE]
                       [else 0]))
              (+ (posn-y (player-loc a-player))
-                (cond [(key=? key "down") (- 0 PLAYER-MOVE)]
-                      [(key=? key "up") PLAYER-MOVE]
+                (cond [(key=? key "down") (- 0 STEP-SIZE)]
+                      [(key=? key "up") STEP-SIZE]
                       [else 0]))))
 
 ;; player-key-handler: Player KeyEvent -> Player
@@ -1006,7 +1023,7 @@
                                                PLAYER-SMALL
                                                #false)
                                   "up")
-              (make-player (make-posn 50 (+ 50 PLAYER-MOVE))
+              (make-player (make-posn 50 (+ 50 STEP-SIZE))
                            (rotate-player PLAYER1
                                           "up")
                            PLAYER-SMALL
@@ -1017,7 +1034,7 @@
                                                #false)
                                   "down")
               (make-player (make-posn 50 (wrap-coordinate (- SCREEN-MIN-Y
-                                                             PLAYER-MOVE)
+                                                             STEP-SIZE)
                                                           SCREEN-MIN-Y
                                                           SCREEN-MAX-Y))
                            (rotate-player PLAYER1
@@ -1067,12 +1084,12 @@
 (define THRESHOLD-PROPORTION 2/3)
 ;; The scores which need to be attained in order for a Player
 ;;  to advance to a given size:
-(define PLAYER-MED-THRESHOLD
+(define THRESHOLD-1
   (* (length (filter (λ (an-enemy) (= (enemy-size an-enemy) ENEMY-SMALL))
                      (fish-world-enemies START)))
      THRESHOLD-PROPORTION))
-(define PLAYER-LARGE-THRESHOLD
-  (+ PLAYER-MED-THRESHOLD
+(define THRESHOLD-2
+  (+ THRESHOLD-1
      (* (length (filter (λ (an-enemy) (= (enemy-size an-enemy) ENEMY-MED))
                         (fish-world-enemies START)))
         2
@@ -1088,7 +1105,7 @@
 ;;           and sets a-player's eaten? field to match eaten?
 (check-expect (tick-player PLAYER1 0 #false) PLAYER1)
 (check-expect (tick-player PLAYER1
-                           (ceiling PLAYER-MED-THRESHOLD)
+                           (ceiling THRESHOLD-1)
                            #false)
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-MED
@@ -1096,7 +1113,7 @@
                            PLAYER-MED
                            #false))
 (check-expect (tick-player PLAYER1
-                           (ceiling PLAYER-LARGE-THRESHOLD)
+                           (ceiling THRESHOLD-2)
                            #true)
               (make-player (player-loc PLAYER1)
                            (draw-fish PLAYER-LARGE
@@ -1105,14 +1122,14 @@
                            #true))
 
 (define (tick-player a-player score eaten?)
-  (cond [(and (>= score PLAYER-LARGE-THRESHOLD)
+  (cond [(and (>= score THRESHOLD-2)
               (< (player-size a-player) PLAYER-LARGE))
          (make-player (player-loc a-player)
                       (draw-fish PLAYER-LARGE
                                  PLAYER-COLOR)
                       PLAYER-LARGE
                       eaten?)]
-        [(and (>= score PLAYER-MED-THRESHOLD)
+        [(and (>= score THRESHOLD-1)
               (< (player-size a-player) PLAYER-MED))
          (make-player (player-loc a-player)
                       (draw-fish PLAYER-MED
@@ -1134,7 +1151,7 @@
 ;; Produces: a new Enemy with an adjusted position and a
 ;;           vel with a chance, ENEMY-CHANGE-CHANCE, of being 
 ;;           randomized so that its components are equally likely 
-;;           to be any Int within [-SPEED-MAX, SPEED-MAX]
+;;           to be any Int within [-SPEED-BOUND, SPEED-BOUND]
 
 (check-expect (enemy-loc (tick-enemy ENEMY1))
               (wrap-posn-to-screen
@@ -1147,10 +1164,10 @@
               (local [(define RAND (random 100))
                       (define VEL
                         (if (< RAND ENEMY-CHANGE-CHANCE)
-                            (random-pair (* -1 SPEED-MAX)
-                                         SPEED-MAX
-                                         (* -1 SPEED-MAX)
-                                         SPEED-MAX
+                            (random-pair (* -1 SPEED-BOUND)
+                                         SPEED-BOUND
+                                         (* -1 SPEED-BOUND)
+                                         SPEED-BOUND
                                          make-velocity)
                             (enemy-vel ENEMY1)))]
                 (if (< RAND ENEMY-CHANGE-CHANCE)
@@ -1160,12 +1177,12 @@
 (check-expect (enemy-size (tick-enemy ENEMY1))
               (enemy-size ENEMY1))
 (check-satisfied (enemy-vel (tick-enemy ENEMY1))
-                 (λ (vel) (and (<= (* -1 SPEED-MAX)
+                 (λ (vel) (and (<= (* -1 SPEED-BOUND)
                                    (velocity-x vel)
-                                   SPEED-MAX)
-                               (<= (* -1 SPEED-MAX)
+                                   SPEED-BOUND)
+                               (<= (* -1 SPEED-BOUND)
                                    (velocity-y vel)
-                                   SPEED-MAX))))
+                                   SPEED-BOUND))))
 
 (define (tick-enemy an-enemy)
   (local [(define (posn-changer loc vel)
@@ -1175,10 +1192,10 @@
           (define RAND (random 100))
           (define VEL
             (if (< RAND ENEMY-CHANGE-CHANCE)
-                (random-pair (* -1 SPEED-MAX)
-                             SPEED-MAX
-                             (* -1 SPEED-MAX)
-                             SPEED-MAX
+                (random-pair (* -1 SPEED-BOUND)
+                             SPEED-BOUND
+                             (* -1 SPEED-BOUND)
+                             SPEED-BOUND
                              make-velocity)
                 (enemy-vel an-enemy)))]
     (make-enemy (posn-changer (enemy-loc an-enemy)
@@ -1194,7 +1211,7 @@
 ;; Consumes:
 ;;  - FishWorld fw: the curent FishWorld
 ;; Produces: a new FishWorld by ticking the player and all enemies
-;;           with player-tick and enemy-tick, respectively
+;;           with tick-player and tick-enemy, respectively
 
 (check-random (fish-world-player (tick-handler TEST-WORLD))
               (tick-player
@@ -1313,25 +1330,25 @@
 
 (define SCORING-ENEMY1 (make-enemy (make-posn 25 25)
                                    (draw-fish ENEMY-LARGE
-                                              ENEMY-COLOR)
+                                              ENEMY-LARGE-COLOR)
                                    ENEMY-LARGE
                                    (make-velocity 3 4)))
 
 (define SCORING-ENEMY2 (make-enemy (make-posn 25 25)
                                    (draw-fish ENEMY-MED
-                                              ENEMY-COLOR)
+                                              ENEMY-MED-COLOR)
                                    ENEMY-MED
                                    (make-velocity 3 4)))
 
 (define SCORING-ENEMY3 (make-enemy (make-posn 25 25)
                                    (draw-fish ENEMY-SMALL
-                                              ENEMY-COLOR)
+                                              ENEMY-SMALL-COLOR)
                                    ENEMY-SMALL
                                    (make-velocity 3 4)))
 
 (define SCORING-ENEMY4 (make-enemy (make-posn 100 100)
                                    (draw-fish ENEMY-SMALL
-                                              ENEMY-COLOR)
+                                              ENEMY-SMALL-COLOR)
                                    ENEMY-SMALL
                                    (make-velocity 3 4)))
 (define SCORING-FW1 (make-fish-world
